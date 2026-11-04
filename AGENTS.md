@@ -19,3 +19,8 @@ Keep all essential information in accessible HTML. Provide keyboard equivalents 
 
 ## Handoff
 Record changed files, commands actually run, browser observations, unresolved issues and exact deployment status in CONTEXT.md. Do not mark incomplete submission tasks done. Do not commit credentials, node_modules, or dist.
+
+## Modes
+Normal and Dream are distinct experiences, not themes of one component tree. Normal must not import Three.js, R3F, the scene, or the experience controller. `App.tsx` lazy loads Dream. Mode is encoded as `?mode=normal|dream`; Back/Forward must work. Reading mode is a Dream accessibility fallback only.
+
+User explicitly authorized pushing major milestones to origin/main. Keep commits focused and context current. User favors fast, token-efficient execution. Parallel bounded work is authorized.
