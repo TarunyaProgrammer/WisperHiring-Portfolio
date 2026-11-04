@@ -21,7 +21,8 @@ Normal and Dream are independent component trees. The default Normal experience 
 - `src/DreamExperience.tsx`: cinematic journey and district interface.
 - `src/data/portfolio.ts`: editable profile, projects, achievements, chapters and campaign.
 - `src/experience/controller.tsx`: single DOM scroll source; mutable progress and discrete UI state.
-- `src/experience/CameraRig.tsx`: authored position, target and FOV keyframes.
+- `src/experience/cameraRoute.ts`: authored GSAP keyframes for camera position, gaze, and FOV.
+- `src/experience/CameraRig.tsx`: applies the GSAP pose to the R3F camera once per frame.
 - `src/experience/World.tsx`: procedural geometry, reused vegetation instances and interactive landmarks.
 - `src/experience/WorldCanvas.tsx`: persistent WebGL surface, lighting, error fallback and visibility handling.
 - `src/interface`: accessible native dialogs and campaign tabs.
@@ -29,7 +30,7 @@ Normal and Dream are independent component trees. The default Normal experience 
 
 Geometry is original, generated in code. No remote model downloads or API keys are required. Fonts are bundled locally. Reading mode works without the 3D layer. All key content and landmark actions are available in HTML.
 
-Native page scrolling drives GSAP ScrollTrigger. Camera progress is a mutable ref rather than a React frame update. Camera position and look-at target interpolate together. The Canvas stays mounted across chapter changes. Repeated trees use instancing; pixel ratio is capped and rendering pauses in hidden tabs. No performance score is claimed.
+Native page scrolling drives GSAP ScrollTrigger. ScrollTrigger scrubs one reversible GSAP timeline for camera position, gaze target, and FOV. Scroll refresh restores its playhead from current scroll. The Canvas stays mounted across chapter changes. Repeated trees use instancing; pixel ratio is capped and rendering pauses in hidden tabs. No performance score is claimed.
 
 Project graphics are architecture illustrations, not fabricated screenshots. GSoC and mentorship descriptions are applicant-supplied; volatile counts and unsubstantiated performance metrics are intentionally excluded. See `docs/CONTENT-SOURCES.md`.
 

@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { chapters } from "../data/portfolio";
+import { createCameraTimeline, initialCameraPose, type CameraPose } from "./cameraRoute";
 gsap.registerPlugin(ScrollTrigger);
 type Controller = {
-  progress: { current: number };
+  cameraPose: { current: CameraPose };
   active: number;
   reduced: boolean;
   reading: boolean;
@@ -14,7 +15,7 @@ type Controller = {
 };
 const Context = createContext<Controller | null>(null);
 export function ExperienceProvider({ children }: { children: ReactNode }) {
-  const progress = useRef(0),
+  const cameraPose = useRef<CameraPose>({ ...initialCameraPose }),
     [active, setActive] = useState(0),
     [reduced, setReduced] = useState(
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -28,17 +29,22 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
-        trigger: ".journey",
-        start: "top top",
-        end: "bottom bottom",
-        onRefresh: (self) => {
-          progress.current = self.progress;
-        },
-        onUpdate: (self) => {
-          progress.current = self.progress;
-        },
-      });
+      const journey = document.querySelector<HTMLElement>(".journey");
+      if (journey) {
+        const cameraTimeline = createCameraTimeline(cameraPose.current);
+        ScrollTrigger.create({
+          animation: cameraTimeline,
+          trigger: journey,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.65,
+          invalidateOnRefresh: true,
+          onRefresh: (self) => {
+            // A refresh/reflow keeps the playhead on the actual scroll position.
+            cameraTimeline.progress(self.progress);
+          },
+        });
+      }
       chapters.forEach((chapter, i) => {
         ScrollTrigger.create({
           trigger: `#${chapter.id}`,
@@ -61,7 +67,7 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
       });
   };
   return (
-    <Context value={{ progress, active, reduced, reading, setReading, go }}>
+    <Context value={{ cameraPose, active, reduced, reading, setReading, go }}>
       {children}
     </Context>
   );

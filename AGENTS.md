@@ -9,7 +9,7 @@ Build The World of Tarunya, an original 3D portfolio for the Wispr Flow hiring c
 - `docs/SUBMISSION.md`: challenge requirements and outstanding applicant tasks.
 
 ## Architecture
-React 19 + TypeScript + Vite. One persistent R3F Canvas. A normal DOM scroll container and GSAP ScrollTrigger are the only scroll source. Continuous progress lives in a mutable controller, never React state. React state handles district changes, dialogs, and interface modes. The CameraRig owns position, look-at and FOV interpolation. World geometry must not import marketing copy. All biography, project and campaign copy belongs in `src/data/portfolio.ts`.
+React 19 + TypeScript + Vite. One persistent R3F Canvas. A normal DOM scroll container and GSAP ScrollTrigger are the only scroll source. A GSAP timeline scrubs a mutable camera pose from DOM scroll. Never store frame-by-frame values in React state. React state handles district changes, dialogs, and interface modes. `cameraRoute.ts` owns authored route keyframes and easing; `CameraRig` only applies the current pose. Keep ScrollTrigger refresh synchronized to its current scroll progress so resize, deep links, and reverse scroll remain stable. World geometry must not import marketing copy. All biography, project and campaign copy belongs in `src/data/portfolio.ts`.
 
 ## Quality
 Keep all essential information in accessible HTML. Provide keyboard equivalents for 3D controls, reduced motion and a reading mode with no WebGL requirement. Project dialogs must trap focus, restore focus, and close with Escape. Mobile text must remain readable. No invented analytics, performance scores, users, or growth results. Proposed campaign numbers are experimental assumptions, explicitly labelled.

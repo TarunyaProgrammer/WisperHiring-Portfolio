@@ -8,7 +8,8 @@
 - TypeScript strict compilation and Vite production build.
 - Normal server rendering; all four project titles and real repository URLs.
 - Normal navigation targets and campaign stage/measurement data.
-- Six finite camera position/target/FOV waypoints.
+- Build and verify pass for 20 timestamped camera poses. Waypoint timing is strictly increasing from scroll 0 to 1, altitude stays 8-24, and FOV ranges 36-47.
+- GSAP timeline test samples a point, moves forward, scrubs backward, and confirms the exact same pose on return.
 - Production assets and social image exist.
 - Default HTML does not preload the 3D bundle.
 - Local preview HTTP 200 from approved execution context.

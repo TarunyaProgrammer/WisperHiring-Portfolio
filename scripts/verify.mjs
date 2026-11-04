@@ -24,15 +24,34 @@ try {
   assert.equal(data.campaignStages.length, 4);
   assert.equal(data.metrics.at(-1), "7-day retention");
   assert.equal(new Set(data.chapters.map((c) => c.id)).size, 6);
-  const { cameraKeyframes } = await server.ssrLoadModule(
-    "/src/experience/CameraRig.tsx",
+  const { cameraKeyframes, createCameraTimeline, initialCameraPose } =
+    await server.ssrLoadModule("/src/experience/cameraRoute.ts");
+  assert(cameraKeyframes.length >= 16);
+  assert.equal(cameraKeyframes[0].at, 0);
+  assert.equal(cameraKeyframes.at(-1).at, 1);
+  assert(
+    cameraKeyframes.every((frame, index) =>
+      index === 0 || frame.at > cameraKeyframes[index - 1].at,
+    ),
+    "Camera route times must increase strictly",
   );
-  assert.equal(cameraKeyframes.length, 6);
   for (const frame of cameraKeyframes) {
-    assert(frame.position.every(Number.isFinite));
-    assert(frame.target.every(Number.isFinite));
-    assert(frame.fov >= 30 && frame.fov <= 50);
+    for (const value of [
+      frame.x, frame.y, frame.z,
+      frame.lookX, frame.lookY, frame.lookZ, frame.fov,
+    ]) assert(Number.isFinite(value));
+    assert(frame.y >= 8 && frame.y <= 24);
+    assert(frame.fov >= 36 && frame.fov <= 47);
   }
+  const pose = { ...initialCameraPose };
+  const cameraTimeline = createCameraTimeline(pose);
+  assert(Math.abs(cameraTimeline.duration() - 1) < 1e-9);
+  cameraTimeline.progress(0.405);
+  const forward = { ...pose };
+  cameraTimeline.progress(0.92);
+  cameraTimeline.progress(0.405);
+  assert.deepEqual(pose, forward, "Reverse scrubbing must retrace the same pose");
+  cameraTimeline.kill();
   const index = readFileSync("dist/index.html", "utf8");
   assert(
     !index.includes("modulepreload"),
@@ -52,7 +71,7 @@ try {
     ),
   );
   console.log(
-    "PASS: Normal SSR, project content, navigation IDs, campaign data, camera waypoints, lazy 3D boundary, and production assets.",
+    "PASS: Normal SSR, project content, navigation IDs, campaign data, reversible camera route, lazy 3D boundary, and production assets.",
   );
 } finally {
   await server.close();
