@@ -18,7 +18,6 @@ type Props = {
 
 export function NormalPortfolio({ onDream, soundEnabled, onToggleSound }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const sculpture = useRef<HTMLDivElement>(null);
   const [openProject, setOpenProject] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,24 +51,14 @@ export function NormalPortfolio({ onDream, soundEnabled, onToggleSound }: Props)
 
   const followPointer = (event: PointerEvent<HTMLElement>) => {
     if (event.pointerType !== "mouse" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
     document.documentElement.style.setProperty("--wake-x", `${event.clientX}px`);
     document.documentElement.style.setProperty("--wake-y", `${event.clientY}px`);
-    if (sculpture.current) {
-      sculpture.current.style.transform = `translate3d(${x * 38}px, ${y * 30}px, 0) rotateX(${-y * 12}deg) rotateY(${x * 16}deg) rotateZ(${x * 4}deg)`;
-    }
   };
 
   return (
     <div ref={root} className="wake-page" onPointerMove={followPointer}>
       <a className="wake-skip" href="#wake-work">Skip to selected work</a>
-      <div className="wake-pointer-light" aria-hidden="true">
-        <div className="wake-pointer-invert" />
-        <div className="wake-pointer-ring" />
-        <div className="wake-pointer-core" />
-      </div>
+      <div className="wake-pointer-light" aria-hidden="true" />
       <header className="wake-header">
         <a className="wake-wordmark" href="#wake-top" aria-label="Tarunya Kesharwani, home">
           TARUNYA KESHARWANI
@@ -100,7 +89,7 @@ export function NormalPortfolio({ onDream, soundEnabled, onToggleSound }: Props)
           <div className="wake-orbit-caption" aria-hidden="true">
             <span>ENGINEERING</span><i /> <span>IDEAS IN MOTION</span>
           </div>
-          <div ref={sculpture} className="wake-sculpture" aria-hidden="true">
+          <div className="wake-sculpture" aria-hidden="true">
             <img src="/images/wake-sculpture.png" alt="" fetchPriority="high" />
           </div>
           <div className="wake-hero-copy">
