@@ -250,7 +250,14 @@ function Portfolio({ onExit }: { onExit: () => void }) {
             </button>
           ))}
         </nav>
-        <button className="map-button" onClick={() => setMap(true)}>
+        <button
+          className="map-button"
+          type="button"
+          aria-label="Open world map and district navigation"
+          aria-haspopup="dialog"
+          aria-expanded={map}
+          onClick={() => setMap(true)}
+        >
           <Map size={17} />
           <span>World map</span>
         </button>

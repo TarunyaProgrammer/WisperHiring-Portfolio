@@ -180,6 +180,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   white-space: nowrap;
   background: #f4f0e8e8;
   box-shadow: 0 3px 12px #283c3210;
@@ -188,6 +189,8 @@ button {
   line-height: 1;
   padding: 9px 11px;
   border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 .landmark-label span {
   font-size: 8px;
@@ -199,6 +202,12 @@ button {
   margin-left: 3px;
 }
 .landmark-label:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.landmark-label:focus-visible {
+  outline: 3px solid #bb704c;
+  outline-offset: 3px;
   background: var(--ink);
   color: var(--paper);
 }
@@ -558,6 +567,7 @@ h2 {
   align-items: center;
   gap: 9px;
   min-height: 44px;
+  min-width: 44px;
   font-size: 10px;
   color: var(--muted);
   position: relative;
@@ -587,6 +597,8 @@ h2 {
   gap: 9px;
   font-size: 10px;
   min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
 }
 .detail-dialog {
   border: 0;
@@ -1013,9 +1025,9 @@ h2 {
     display: none;
   }
   .landmark-label {
-    font-size: 8px;
-    padding: 6px 7px;
-    gap: 5px;
+    font-size: 10px;
+    padding: 10px 11px;
+    gap: 6px;
   }
   .landmark-label span {
     font-size: 7px;
@@ -1105,7 +1117,7 @@ h2 {
     font-size: 9px;
   }
   .chapter-nav {
-    gap: 14px;
+    gap: 6px;
   }
   .chapter-nav button > span:last-child {
     display: none;
@@ -1114,13 +1126,14 @@ h2 {
     font-size: 10px;
   }
   .chapter-nav button {
-    padding: 0 3px;
+    padding: 0;
+    justify-content: center;
   }
   .map-button span {
     display: none;
   }
   .map-button {
-    padding: 10px;
+    padding: 0;
   }
   .location-mark {
     height: 5px;
@@ -1225,6 +1238,20 @@ h2 {
   }
   .reading-mode .horizon {
     padding-bottom: 130px;
+  }
+}
+@media (max-width: 600px) {
+  .journey-footer {
+    padding-inline: 12px;
+    gap: 6px;
+  }
+  .current-location {
+    display: none;
+  }
+  .chapter-nav {
+    flex: 1;
+    justify-content: center;
+    gap: clamp(0px, 2vw, 8px);
   }
 }
 @media (prefers-reduced-motion: reduce) {

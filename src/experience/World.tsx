@@ -1,5 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 import { Html } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
+import gsap from "gsap";
 import {
   CatmullRomCurve3,
   BufferGeometry,
@@ -10,8 +13,8 @@ import {
   Object3D,
   Shape,
   Vector3,
+  Group as ThreeGroup,
 } from "three";
-import type { ThreeEvent } from "@react-three/fiber";
 import { useExperience } from "./controller";
 const colors = {
   cream: "#e6dfcd",
@@ -414,21 +417,105 @@ function Label({
   position,
   number,
   name,
+  action,
   onClick,
+  onFocus,
+  onBlur,
 }: {
   position: Vec;
   number: string;
   name: string;
+  action: string;
   onClick: () => void;
+  onFocus: () => void;
+  onBlur: () => void;
 }) {
   return (
     <Html position={position} center distanceFactor={32} zIndexRange={[10, 0]}>
-      <button className="landmark-label" onClick={onClick}>
-        <span>{number}</span>
+      <button
+        className="landmark-label"
+        type="button"
+        aria-label={`${name}: ${action}`}
+        title={action}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick();
+        }}
+        onFocus={onFocus}
+        onBlur={onBlur}
+      >
+        {number && <span>{number}</span>}
         {name}
-        <i>↗</i>
+        <i aria-hidden="true">↗</i>
       </button>
     </Html>
+  );
+}
+
+function InteractiveLandmark({
+  position,
+  baseScale = 1,
+  rotation,
+  action,
+  onSelect,
+  children,
+  label,
+}: {
+  position: Vec;
+  baseScale?: number;
+  rotation?: [number, number, number];
+  action: string;
+  onSelect: () => void;
+  children: ReactNode;
+  label?: { position: Vec; number: string; name: string };
+}) {
+  const group = useRef<ThreeGroup>(null);
+  const canvas = useThree((state) => state.gl.domElement);
+  const { reduced } = useExperience();
+  const setHighlighted = (highlighted: boolean) => {
+    const target = group.current;
+    if (!target) return;
+    gsap.killTweensOf(target.scale);
+    const scale = highlighted && !reduced ? baseScale * 1.045 : baseScale;
+    gsap.to(target.scale, {
+      x: scale,
+      y: scale,
+      z: scale,
+      duration: highlighted ? 0.18 : 0.13,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  };
+  return (
+    <group
+      ref={group}
+      position={position}
+      rotation={rotation}
+      scale={baseScale}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+      onPointerEnter={() => {
+        canvas.style.cursor = "pointer";
+        setHighlighted(true);
+      }}
+      onPointerLeave={() => {
+        canvas.style.cursor = "";
+        setHighlighted(false);
+      }}
+    >
+      {children}
+      {label && (
+        <Label
+          {...label}
+          action={action}
+          onClick={onSelect}
+          onFocus={() => setHighlighted(true)}
+          onBlur={() => setHighlighted(false)}
+        />
+      )}
+    </group>
   );
 }
 function DreamLandscape() {
@@ -538,10 +625,6 @@ export function World({
   onProof: () => void;
 }) {
   const { go } = useExperience();
-  const click = (fn: () => void) => (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    fn();
-  };
   return (
     <group>
       <Terrain />
@@ -554,63 +637,57 @@ export function World({
       <Path points={[[-4,.065,-9],[-3.4,.065,-6],[-2.8,.065,-3.6],[-2.1,.065,-1.4],[-.1,.065,.35],[2.2,.065,1.55],[4.8,.065,2.5],[7.4,.065,3],[10,.065,4.2]]} width={1.12} color={colors.canal}/>
       <Bridge position={[-2.8, .1, -3.6]} rotation={-.12} />
       <Bridge position={[.1, .1, .5]} rotation={.88} />
-      <group position={[-6, 0, 4]} onClick={click(() => go(1))}>
+      <InteractiveLandmark
+        position={[-6, 0, 4]}
+        action="Go to the Origin district"
+        onSelect={() => go(1)}
+        label={{ position: [0, 4.3, 0], number: "01", name: "Origin" }}
+      >
         <Arch rotation={-0.2} />
         <Arch position={[0, 0, -1.3]} rotation={-0.2} scale={0.85} />
         <Block position={[0, 0.1, 1]} size={[3.5, 0.18, 2.5]} color="#cfc0a1" />
-        <Label
-          position={[0, 4.3, 0]}
-          number="01"
-          name="Origin"
-          onClick={() => go(1)}
-        />
-      </group>
-      <group
+      </InteractiveLandmark>
+      <InteractiveLandmark
         position={[5, 0.1, 3.8]}
         rotation={[0, -0.2, 0]}
-        onClick={click(() => onProject("cabin"))}
+        action="Open Cabin, MaintainerOS project details"
+        onSelect={() => onProject("cabin")}
+        label={{ position: [0, 4, 0], number: "02", name: "Cabin" }}
       >
         <Workshop />
-        <Label
-          position={[0, 4, 0]}
-          number="02"
-          name="The Workshop"
-          onClick={() => go(2)}
-        />
-      </group>
-      <group position={[-5, 0.1, -4]} onClick={click(onProof)}>
+      </InteractiveLandmark>
+      <InteractiveLandmark
+        position={[-5, 0.1, -4]}
+        action="Open contribution and achievement details"
+        onSelect={onProof}
+        label={{ position: [0, 8, 0], number: "03", name: "The Proof" }}
+      >
         <Tower />
-        <Label
-          position={[0, 8, 0]}
-          number="03"
-          name="The Proof"
-          onClick={() => go(3)}
-        />
-      </group>
-      <group
+      </InteractiveLandmark>
+      <InteractiveLandmark
         position={[5, 0.1, -4.7]}
         rotation={[0, -0.35, 0]}
-        onClick={click(() => go(4))}
+        action="Go to the Signal Lab district"
+        onSelect={() => go(4)}
+        label={{ position: [0, 5.9, 0], number: "04", name: "Signal Lab" }}
       >
         <Signal />
-        <Label
-          position={[0, 5.9, 0]}
-          number="04"
-          name="Signal Lab"
-          onClick={() => go(4)}
-        />
-      </group>
-      <group
+      </InteractiveLandmark>
+      <InteractiveLandmark
         position={[0.5, 0.1, -6.2]}
-        scale={0.65}
-        onClick={click(() => onProject("webiu"))}
+        baseScale={0.65}
+        action="Open WebiU project details"
+        onSelect={() => onProject("webiu")}
+        label={{ position: [0, 3.4, 0], number: "", name: "WebiU" }}
       >
         <Observatory />
-      </group>
-      <group
+      </InteractiveLandmark>
+      <InteractiveLandmark
         position={[-1, 0.1, 6.1]}
-        scale={0.65}
-        onClick={click(() => onProject("echo"))}
+        baseScale={0.65}
+        action="Open Echo project details"
+        onSelect={() => onProject("echo")}
+        label={{ position: [0, 2.8, 0], number: "", name: "Echo" }}
       >
         <Block position={[0, 0.7, 0]} size={[2, 1.4, 1.7]} color="#b1c1b4" />
         <Block
@@ -623,15 +700,17 @@ export function World({
           size={[1.5, 0.55, 0.05]}
           color="#476c69"
         />
-      </group>
-      <group
+      </InteractiveLandmark>
+      <InteractiveLandmark
         position={[8, 0.1, -0.8]}
-        scale={0.7}
-        onClick={click(() => onProject("streakly"))}
+        baseScale={0.7}
+        action="Open Streakly project details"
+        onSelect={() => onProject("streakly")}
+        label={{ position: [0, 3.2, 0], number: "", name: "Streakly" }}
       >
         <Arch />
         <Block position={[0, 0.2, 1]} size={[3, 0.25, 2.5]} />
-      </group>
+      </InteractiveLandmark>
       <group position={[0, 0.46, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1.4, 48]} />

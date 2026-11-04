@@ -39,6 +39,7 @@ export function WorldCanvas({
   return (
     <div
       className="world-canvas"
+      role="group"
       aria-label="Interactive miniature world. All landmarks are also available through the chapter navigation."
     >
       {!ready && (
@@ -99,7 +100,7 @@ export function WorldCanvas({
       </SceneBoundary>
       <div className="world-caption">
         <span>AN INTERACTIVE MINIATURE WORLD</span>
-        <span>Four districts. One curious mind.</span>
+        <span>Select a landmark for details · Scroll or use the map to travel.</span>
       </div>
     </div>
   );
