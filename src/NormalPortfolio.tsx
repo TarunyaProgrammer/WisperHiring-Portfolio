@@ -15,8 +15,8 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
         </nav>
-        <button className="dream-switch" onClick={onDream}>
-          <Moon size={14} /> Enter the dream <ArrowUpRight size={15} />
+        <button className="dream-switch" type="button" onClick={onDream}>
+          <Moon size={14} aria-hidden="true" focusable="false" /> Enter the dream <ArrowUpRight size={15} aria-hidden="true" focusable="false" />
         </button>
       </header>
       <main>
@@ -32,11 +32,12 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
           <div className="normal-hero-bottom">
             <p>{profile.introduction}</p>
             <a className="text-link" href="#work">
-              Explore selected work <ArrowDown size={16} />
+              Explore selected work <ArrowDown size={16} aria-hidden="true" focusable="false" />
             </a>
           </div>
           <button
             className="dream-portal"
+            type="button"
             onClick={onDream}
             aria-label="Enter Dream mode, an interactive 3D world"
           >
@@ -52,7 +53,7 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
               <strong>Step into my world.</strong>
               <span>
                 Four districts. One interactive 3D journey.{" "}
-                <ArrowUpRight size={17} />
+                <ArrowUpRight size={17} aria-hidden="true" focusable="false" />
               </span>
             </span>
           </button>
@@ -78,6 +79,7 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
               >
                 <button
                   className="normal-project-toggle"
+                  type="button"
                   onClick={() => setSelected(selected === p.id ? null : p.id)}
                   aria-expanded={selected === p.id}
                   aria-controls={`normal-detail-${p.id}`}
@@ -112,7 +114,7 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Explore repository <ArrowUpRight size={16} />
+                    Explore repository <ArrowUpRight size={16} aria-hidden="true" focusable="false" />
                   </a>
                 </div>
               </article>
@@ -147,7 +149,7 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
                   rel="noreferrer"
                 >
                   {a.link}
-                  <ArrowUpRight size={14} />
+                  <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
                 </a>
               </article>
             ))}
@@ -176,25 +178,25 @@ export function NormalPortfolio({ onDream }: { onDream: () => void }) {
           </h2>
           <a className="normal-email" href={`mailto:${profile.email}`}>
             {profile.email}
-            <ArrowUpRight size={24} />
+            <ArrowUpRight size={24} aria-hidden="true" focusable="false" />
           </a>
           <div className="social-links">
             <a href={profile.github} target="_blank" rel="noreferrer">
-              GitHub <ArrowUpRight size={14} />
+              GitHub <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
             </a>
             <a href={profile.linkedin} target="_blank" rel="noreferrer">
-              LinkedIn <ArrowUpRight size={14} />
+              LinkedIn <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
             </a>
             <a href={profile.resume} target="_blank" rel="noreferrer">
-              Résumé <ArrowUpRight size={14} />
+              Résumé <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
             </a>
           </div>
         </section>
       </main>
       <footer className="normal-footer">
         <span>Tarunya Kesharwani © 2026</span>
-        <button onClick={onDream}>
-          Still curious? Enter the dream <ArrowUpRight size={14} />
+        <button type="button" onClick={onDream}>
+          Still curious? Enter the dream <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
         </button>
         <a href="#top">Back to top ↑</a>
       </footer>

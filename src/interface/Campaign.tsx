@@ -2,10 +2,9 @@ import { useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { campaignStages, metrics } from "../data/portfolio";
 import { DetailDialog } from "./DetailDialog";
-export function Campaign({ expanded = false }: { expanded?: boolean }) {
-  const [stage, setStage] = useState(0),
-    [open, setOpen] = useState(expanded);
-  const content = (
+export function CampaignDetails() {
+  const [stage, setStage] = useState(0);
+  return (
     <>
       <p className="eyebrow">A PROPOSAL FOR WISPR FLOW</p>
       <h2 className="campaign-title">Build out loud.</h2>
@@ -13,6 +12,7 @@ export function Campaign({ expanded = false }: { expanded?: boolean }) {
       <div className="campaign-tabs" role="tablist" aria-label="Campaign plan">
         {campaignStages.map((s, i) => (
           <button
+            type="button"
             id={`campaign-tab-${i}`}
             aria-controls="campaign-panel"
             tabIndex={stage === i ? 0 : -1}
@@ -61,7 +61,7 @@ export function Campaign({ expanded = false }: { expanded?: boolean }) {
           {metrics.map((m, i) => (
             <span key={m}>
               {m}
-              {i < metrics.length - 1 && <ArrowRight size={12} />}
+              {i < metrics.length - 1 && <ArrowRight size={12} aria-hidden="true" focusable="false" />}
             </span>
           ))}
         </div>
@@ -73,21 +73,24 @@ export function Campaign({ expanded = false }: { expanded?: boolean }) {
       </p>
     </>
   );
+}
+export function Campaign() {
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <button className="campaign-invitation" onClick={() => setOpen(true)}>
-        <div className="waveform" aria-hidden="true">
+      <button className="campaign-invitation" type="button" onClick={() => setOpen(true)}>
+        <span className="waveform" aria-hidden="true">
           {Array.from({ length: 25 }, (_, i) => (
             <i
               key={i}
               style={{ height: `${10 + Math.abs(Math.sin(i * 1.9)) * 30}px` }}
             />
           ))}
-        </div>
+        </span>
         <span className="eyebrow">THE CAMPUS CREATOR EXPERIMENT</span>
         <strong>Build out loud.</strong>
         <span>
-          Explore the campaign <ArrowUpRight size={18} />
+          Explore the campaign <ArrowUpRight size={18} aria-hidden="true" focusable="false" />
         </span>
       </button>
       {open && (
@@ -95,7 +98,7 @@ export function Campaign({ expanded = false }: { expanded?: boolean }) {
           onClose={() => setOpen(false)}
           title="Build out loud campaign proposal"
         >
-          {content}
+          <CampaignDetails />
         </DetailDialog>
       )}
     </>

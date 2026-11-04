@@ -24,7 +24,13 @@ try {
   assert.equal(data.campaignStages.length, 4);
   assert.equal(data.metrics.at(-1), "7-day retention");
   assert.equal(new Set(data.chapters.map((c) => c.id)).size, 6);
-  const { cameraKeyframes, createCameraTimeline, initialCameraPose } =
+  const {
+    cameraKeyframes,
+    districtCameraPoses,
+    createCameraTimeline,
+    createDistrictFlightTimeline,
+    initialCameraPose,
+  } =
     await server.ssrLoadModule("/src/experience/cameraRoute.ts");
   assert(cameraKeyframes.length >= 16);
   assert.equal(cameraKeyframes[0].at, 0);
@@ -43,6 +49,11 @@ try {
     assert(frame.y >= 8 && frame.y <= 24);
     assert(frame.fov >= 36 && frame.fov <= 47);
   }
+  assert.equal(districtCameraPoses.length, data.chapters.length);
+  for (const pose of districtCameraPoses) {
+    for (const value of Object.values(pose)) assert(Number.isFinite(value));
+    assert(pose.y >= 8 && pose.y <= 24);
+  }
   const pose = { ...initialCameraPose };
   const cameraTimeline = createCameraTimeline(pose);
   assert(Math.abs(cameraTimeline.duration() - 1) < 1e-9);
@@ -52,6 +63,39 @@ try {
   cameraTimeline.progress(0.405);
   assert.deepEqual(pose, forward, "Reverse scrubbing must retrace the same pose");
   cameraTimeline.kill();
+  const cameraPosition = { x: 24, y: 23, z: 30 };
+  const cameraTarget = { x: 0, y: 0, z: 0 };
+  const lens = { fov: 36, updateProjectionMatrix() {} };
+  const flight = createDistrictFlightTimeline(
+    cameraPosition,
+    cameraTarget,
+    lens,
+    districtCameraPoses[3],
+    () => {},
+    () => {},
+  );
+  flight.progress(0.4);
+  const flightSample = {
+    cameraPosition: { ...cameraPosition },
+    cameraTarget: { ...cameraTarget },
+    fov: lens.fov,
+  };
+  flight.progress(1);
+  flight.progress(0.4);
+  assert.deepEqual(
+    {
+      cameraPosition,
+      cameraTarget,
+      fov: lens.fov,
+    },
+    flightSample,
+    "Interrupted district flights must remain reversible",
+  );
+  flight.kill();
+  const controllerSource = readFileSync("src/experience/controller.tsx", "utf8");
+  const canvasSource = readFileSync("src/experience/WorldCanvas.tsx", "utf8");
+  assert(!controllerSource.includes("ScrollTrigger"), "Dream camera is not scroll-controlled");
+  assert(canvasSource.includes("OrbitControls"), "Dream world remains directly explorable");
   const index = readFileSync("dist/index.html", "utf8");
   assert(
     !index.includes("modulepreload"),

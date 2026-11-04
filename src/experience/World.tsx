@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
@@ -15,7 +15,7 @@ import {
   Vector3,
   Group as ThreeGroup,
 } from "three";
-import { useExperience } from "./controller";
+import { useReducedMotion, useSceneController } from "./controller";
 const colors = {
   cream: "#e6dfcd",
   roof: "#bf714b",
@@ -31,6 +31,13 @@ const colors = {
   timber: "#526051",
 };
 type Vec = [number, number, number];
+const routes: Record<string, Vec[]> = {
+  outerRoad: [[-8,.22,4],[-6.3,.22,4.45],[-4.4,.22,3.65],[-2.2,.22,2.25],[0,.22,.5],[2.3,.22,-.65],[4.4,.22,-.4],[6.3,.22,1.1],[8,.22,1],[8,.22,-3],[5,.22,-6],[-1,.22,-6.8],[-6,.22,-5],[-8,.22,0],[-8,.22,4]],
+  centerRoad: [[-7.5,.23,-2],[-6.5,.23,-.2],[-5,.23,1.4],[-3,.23,2],[0,.23,.5],[2,.23,-1.2],[3.8,.23,-3],[5,.23,-4.7]],
+  northRoad: [[-1,.24,5.3],[.4,.24,3.6],[1,.24,1.5],[0,.24,.5],[-1.6,.24,-1],[-2.7,.24,-3.1],[-3.8,.24,-5.5]],
+  canalBank: [[-4,.045,-9],[-3.4,.045,-6],[-2.8,.045,-3.6],[-2.1,.045,-1.4],[-.1,.045,.35],[2.2,.045,1.55],[4.8,.045,2.5],[7.4,.045,3],[10,.045,4.2]],
+  canal: [[-4,.065,-9],[-3.4,.065,-6],[-2.8,.065,-3.6],[-2.1,.065,-1.4],[-.1,.065,.35],[2.2,.065,1.55],[4.8,.065,2.5],[7.4,.065,3],[10,.065,4.2]],
+};
 function Block({
   position = [0, 0, 0],
   size = [1, 1, 1],
@@ -421,6 +428,7 @@ function Label({
   onClick,
   onFocus,
   onBlur,
+  visible,
 }: {
   position: Vec;
   number: string;
@@ -429,11 +437,12 @@ function Label({
   onClick: () => void;
   onFocus: () => void;
   onBlur: () => void;
+  visible: boolean;
 }) {
   return (
-    <Html position={position} center distanceFactor={32} zIndexRange={[10, 0]}>
+    <Html position={position} center distanceFactor={32} zIndexRange={[10, 0]} pointerEvents="none">
       <button
-        className="landmark-label"
+        className={visible ? "landmark-label is-visible" : "landmark-label"}
         type="button"
         aria-label={`${name}: ${action}`}
         title={action}
@@ -470,9 +479,10 @@ function InteractiveLandmark({
   label?: { position: Vec; number: string; name: string };
 }) {
   const group = useRef<ThreeGroup>(null);
+  const [labelVisible, setLabelVisible] = useState(false);
   const canvas = useThree((state) => state.gl.domElement);
-  const { reduced } = useExperience();
-  const setHighlighted = (highlighted: boolean) => {
+  const reduced = useReducedMotion();
+  const animateHighlight = (highlighted: boolean) => {
     const target = group.current;
     if (!target) return;
     gsap.killTweensOf(target.scale);
@@ -486,6 +496,9 @@ function InteractiveLandmark({
       overwrite: true,
     });
   };
+  useEffect(() => () => {
+    if (group.current) gsap.killTweensOf(group.current.scale);
+  }, []);
   return (
     <group
       ref={group}
@@ -498,11 +511,13 @@ function InteractiveLandmark({
       }}
       onPointerEnter={() => {
         canvas.style.cursor = "pointer";
-        setHighlighted(true);
+        setLabelVisible(true);
+        animateHighlight(true);
       }}
       onPointerLeave={() => {
         canvas.style.cursor = "";
-        setHighlighted(false);
+        setLabelVisible(false);
+        animateHighlight(false);
       }}
     >
       {children}
@@ -511,8 +526,15 @@ function InteractiveLandmark({
           {...label}
           action={action}
           onClick={onSelect}
-          onFocus={() => setHighlighted(true)}
-          onBlur={() => setHighlighted(false)}
+          visible={labelVisible}
+          onFocus={() => {
+            setLabelVisible(true);
+            animateHighlight(true);
+          }}
+          onBlur={() => {
+            setLabelVisible(false);
+            animateHighlight(false);
+          }}
         />
       )}
     </group>
@@ -620,27 +642,34 @@ function DreamLandscape() {
 export function World({
   onProject,
   onProof,
+  onProfile,
+  onCampaign,
 }: {
   onProject: (id: string) => void;
   onProof: () => void;
+  onProfile: () => void;
+  onCampaign: () => void;
 }) {
-  const { go } = useExperience();
+  const { go } = useSceneController();
   return (
     <group>
       <Terrain />
       <Trees />
       <DreamLandscape />
-      <Path points={[[-8,.22,4],[-6.3,.22,4.45],[-4.4,.22,3.65],[-2.2,.22,2.25],[0,.22,.5],[2.3,.22,-.65],[4.4,.22,-.4],[6.3,.22,1.1],[8,.22,1],[8,.22,-3],[5,.22,-6],[-1,.22,-6.8],[-6,.22,-5],[-8,.22,0],[-8,.22,4]]} width={.48} edge />
-      <Path points={[[-7.5,.23,-2],[-6.5,.23,-.2],[-5,.23,1.4],[-3,.23,2],[0,.23,.5],[2,.23,-1.2],[3.8,.23,-3],[5,.23,-4.7]]} width={.35} edge />
-      <Path points={[[-1,.24,5.3],[.4,.24,3.6],[1,.24,1.5],[0,.24,.5],[-1.6,.24,-1],[-2.7,.24,-3.1],[-3.8,.24,-5.5]]} width={.32} edge />
-      <Path points={[[-4,.045,-9],[-3.4,.045,-6],[-2.8,.045,-3.6],[-2.1,.045,-1.4],[-.1,.045,.35],[2.2,.045,1.55],[4.8,.045,2.5],[7.4,.045,3],[10,.045,4.2]]} width={1.42} color={colors.pathEdge}/>
-      <Path points={[[-4,.065,-9],[-3.4,.065,-6],[-2.8,.065,-3.6],[-2.1,.065,-1.4],[-.1,.065,.35],[2.2,.065,1.55],[4.8,.065,2.5],[7.4,.065,3],[10,.065,4.2]]} width={1.12} color={colors.canal}/>
+      <Path points={routes.outerRoad} width={.48} edge />
+      <Path points={routes.centerRoad} width={.35} edge />
+      <Path points={routes.northRoad} width={.32} edge />
+      <Path points={routes.canalBank} width={1.42} color={colors.pathEdge}/>
+      <Path points={routes.canal} width={1.12} color={colors.canal}/>
       <Bridge position={[-2.8, .1, -3.6]} rotation={-.12} />
       <Bridge position={[.1, .1, .5]} rotation={.88} />
       <InteractiveLandmark
         position={[-6, 0, 4]}
-        action="Go to the Origin district"
-        onSelect={() => go(1)}
+        action="Open Tarunya’s profile"
+        onSelect={() => {
+          go(1);
+          onProfile();
+        }}
         label={{ position: [0, 4.3, 0], number: "01", name: "Origin" }}
       >
         <Arch rotation={-0.2} />
@@ -659,7 +688,10 @@ export function World({
       <InteractiveLandmark
         position={[-5, 0.1, -4]}
         action="Open contribution and achievement details"
-        onSelect={onProof}
+        onSelect={() => {
+          go(3);
+          onProof();
+        }}
         label={{ position: [0, 8, 0], number: "03", name: "The Proof" }}
       >
         <Tower />
@@ -667,8 +699,11 @@ export function World({
       <InteractiveLandmark
         position={[5, 0.1, -4.7]}
         rotation={[0, -0.35, 0]}
-        action="Go to the Signal Lab district"
-        onSelect={() => go(4)}
+        action="Explore the Signal Lab campaign"
+        onSelect={() => {
+          go(4);
+          onCampaign();
+        }}
         label={{ position: [0, 5.9, 0], number: "04", name: "Signal Lab" }}
       >
         <Signal />

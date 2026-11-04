@@ -47,6 +47,56 @@ export const initialCameraPose: CameraPose = {
   fov: 36,
 }
 
+export const districtCameraPoses: CameraPose[] = [
+  initialCameraPose,
+  cameraKeyframes[4],
+  cameraKeyframes[7],
+  cameraKeyframes[11],
+  cameraKeyframes[15],
+  cameraKeyframes[18],
+].map(({ x, y, z, lookX, lookY, lookZ, fov }) => ({
+  x,
+  y,
+  z,
+  lookX,
+  lookY,
+  lookZ,
+  fov,
+}));
+
+type MutablePoint = { x: number; y: number; z: number };
+type MutableLens = { fov: number; updateProjectionMatrix: () => void };
+export function createDistrictFlightTimeline(
+  cameraPosition: MutablePoint,
+  cameraTarget: MutablePoint,
+  lens: MutableLens,
+  destination: CameraPose,
+  onUpdate: () => void,
+  onComplete: () => void,
+) {
+  const timeline = gsap.timeline({
+    paused: true,
+    defaults: { duration: 0.95, ease: "power3.inOut" },
+    onUpdate,
+    onComplete,
+  });
+  timeline.to(cameraPosition, {
+    x: destination.x,
+    y: destination.y,
+    z: destination.z,
+  }, 0);
+  timeline.to(cameraTarget, {
+    x: destination.lookX,
+    y: destination.lookY,
+    z: destination.lookZ,
+  }, 0);
+  timeline.to(lens, {
+    fov: destination.fov,
+    onUpdate: () => lens.updateProjectionMatrix(),
+  }, 0);
+  return timeline;
+}
+
 export function createCameraTimeline(pose: CameraPose) {
   Object.assign(pose, initialCameraPose)
   const timeline = gsap.timeline({ paused: true })

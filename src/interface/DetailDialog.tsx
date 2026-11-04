@@ -39,10 +39,11 @@ export function DetailDialog({
       <div className="dialog-content">
         <button
           className="close-button icon-button"
+          type="button"
           onClick={onClose}
           aria-label="Close details"
         >
-          <X size={22} />
+          <X size={22} aria-hidden="true" focusable="false" />
         </button>
         {children}
       </div>

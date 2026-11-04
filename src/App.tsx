@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { NormalPortfolio } from "./NormalPortfolio";
+import { ExperienceErrorBoundary } from "./interface/ExperienceErrorBoundary";
 const DreamExperience = lazy(() => import("./DreamExperience"));
 export function App() {
   const [mode, setMode] = useState<"normal" | "dream">(() =>
@@ -29,14 +30,30 @@ export function App() {
   return mode === "normal" ? (
     <NormalPortfolio onDream={() => switchMode("dream")} />
   ) : (
-    <Suspense
+    <ExperienceErrorBoundary
       fallback={
-        <div className="mode-loading" role="status">
-          Opening the dream…
-        </div>
+        <main className="mode-failure" role="alert">
+          <h1>The Dream experience couldn’t load.</h1>
+          <p>Your portfolio is still available in Normal mode.</p>
+          <button onClick={() => switchMode("normal")}>
+            Return to Normal mode
+          </button>
+          <button onClick={() => window.location.reload()}>
+            Reload the experience
+          </button>
+        </main>
       }
     >
-      <DreamExperience onExit={() => switchMode("normal")} />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="mode-loading" role="status" aria-label="Opening the dream">
+            <span className="loading-indicator" aria-hidden="true" />
+            <span className="visually-hidden">Opening the dream…</span>
+          </div>
+        }
+      >
+        <DreamExperience onExit={() => switchMode("normal")} />
+      </Suspense>
+    </ExperienceErrorBoundary>
   );
 }

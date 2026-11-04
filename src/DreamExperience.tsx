@@ -1,73 +1,111 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
   BookOpen,
   Map,
+  X,
   MoveUpRight,
 } from "lucide-react";
 import { ExperienceProvider, useExperience } from "./experience/controller";
 import { chapters, projects, profile, achievements } from "./data/portfolio";
 import { DetailDialog } from "./interface/DetailDialog";
-import { Campaign } from "./interface/Campaign";
+import { Campaign, CampaignDetails } from "./interface/Campaign";
+import { ExperienceErrorBoundary } from "./interface/ExperienceErrorBoundary";
 const WorldCanvas = lazy(() =>
-  import("./experience/WorldCanvas").then((m) => ({ default: m.WorldCanvas })),
+  import("./experience/WorldCanvas").then((m) => ({ default: m.MemoizedWorldCanvas })),
 );
 function Portfolio({ onExit }: { onExit: () => void }) {
   const { active, go, reading, setReading, reduced } = useExperience(),
     [projectId, setProjectId] = useState<string | null>(null),
     [proof, setProof] = useState(false),
+    [profileDetails, setProfileDetails] = useState(false),
+    [campaignDetails, setCampaignDetails] = useState(false),
     [map, setMap] = useState(false);
+  const openProof = useCallback(() => setProof(true), []);
+  const openProfile = useCallback(() => setProfileDetails(true), []);
+  const openCampaign = useCallback(() => setCampaignDetails(true), []);
+  const scrollToChapter = useCallback((index: number) => {
+    document.getElementById(chapters[index].id)?.scrollIntoView({
+      behavior: reduced ? "instant" : "smooth",
+      block: "start",
+    });
+  }, [reduced]);
+  const selectChapter = useCallback((index: number) => {
+    setMap(false);
+    go(index);
+    if (reading) requestAnimationFrame(() => scrollToChapter(index));
+  }, [go, reading, scrollToChapter]);
   const project = projects.find((p) => p.id === projectId);
   useEffect(() => {
     const hash = location.hash.slice(1),
       i = chapters.findIndex((c) => c.id === hash);
-    if (i >= 0) requestAnimationFrame(() => go(i));
-  }, []); // Initial deep-link only; chapter navigation uses the same DOM scroll.
+    if (i < 0) return;
+    const frame = requestAnimationFrame(() => go(i));
+    return () => cancelAnimationFrame(frame);
+  }, [go]); // Initial deep-link only; chapter navigation uses the same DOM scroll.
   return (
-    <div className={reading ? "portfolio reading-mode" : "portfolio"}>
+    <div className={reading ? "portfolio reading-mode" : "portfolio immersive"}>
       <a className="skip-link" href="#origin">
         Skip to my story
       </a>
-      <header className="site-header">
-        <button
-          className="wordmark"
-          onClick={() => go(0)}
-          aria-label="The World of Tarunya, back to top"
-        >
-          <span className="brand-mark">t.</span>
-          <span>
-            THE WORLD
-            <br />
-            OF TARUNYA
-          </span>
-        </button>
-        <span className="header-note">YOU ARE IN THE DREAM.</span>
-        <div className="header-actions">
-          <button className="exit-dream" onClick={onExit}>
-            Normal mode ↗
+      {reading ? (
+        <header className="site-header reading-header">
+          <button className="wordmark" type="button" onClick={() => scrollToChapter(0)}>
+            <span className="brand-mark">t.</span>
+            <span>THE WORLD<br />OF TARUNYA</span>
           </button>
-          <button className="mode-button" onClick={() => setReading(!reading)}>
-            <BookOpen size={15} />
-            <span>{reading ? "Enter 3D world" : "Reading mode"}</span>
-          </button>
-          <a className="contact-link" href={`mailto:${profile.email}`}>
-            Let’s talk <ArrowUpRight size={16} />
-          </a>
-        </div>
-      </header>
-      {!reading && (
-        <Suspense
-          fallback={<div className="scene-loading">Preparing your world…</div>}
-        >
-          <WorldCanvas
-            onProject={setProjectId}
-            onProof={() => setProof(true)}
-          />
-        </Suspense>
+          <div className="header-actions">
+            <button className="exit-dream" type="button" onClick={onExit}>Normal mode</button>
+            <button className="mode-button" type="button" onClick={() => setReading(false)}>
+              <BookOpen size={15} aria-hidden="true" focusable="false" />
+              <span>Return to the world</span>
+            </button>
+          </div>
+        </header>
+      ) : (
+        <header className="immersive-controls" aria-label="World controls">
+          <div className="immersive-controls-group">
+            <button className="world-control" type="button" aria-label="Return to Normal mode" onClick={onExit}>
+              <X size={18} aria-hidden="true" focusable="false" />
+            </button>
+            <button className="world-control" type="button" aria-label="Open reading mode" onClick={() => setReading(true)}>
+              <BookOpen size={18} aria-hidden="true" focusable="false" />
+            </button>
+            <button className="world-control" type="button" aria-label="Open district map" aria-haspopup="dialog" aria-expanded={map} onClick={() => setMap(true)}>
+              <Map size={18} aria-hidden="true" focusable="false" />
+            </button>
+          </div>
+        </header>
       )}
-      <main className="journey">
+      {!reading && (
+        <ExperienceErrorBoundary
+          fallback={
+            <div className="scene-failure" role="alert">
+              <p>The 3D scene couldn’t load. Your story is still available below.</p>
+              <button onClick={() => setReading(true)}>
+                Continue in reading mode
+              </button>
+              <button onClick={() => window.location.reload()}>
+                Retry the 3D scene
+              </button>
+            </div>
+          }
+        >
+          <Suspense
+            fallback={<div className="scene-loading" role="status">Preparing your world…</div>}
+          >
+            <WorldCanvas
+              onProject={setProjectId}
+              onProof={openProof}
+              onProfile={openProfile}
+              onCampaign={openCampaign}
+            />
+          </Suspense>
+        </ExperienceErrorBoundary>
+      )}
+      {reading && <main className="journey">
         <section
           className="chapter hero"
           id="overview"
@@ -88,16 +126,16 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               Explore it.
             </p>
             <p className="hero-description">{chapters[0].description}</p>
-            <button className="primary-button" onClick={() => go(1)}>
-              Enter my world <ArrowUpRight size={19} />
+            <button className="primary-button" onClick={() => selectChapter(1)}>
+              Enter my world <ArrowUpRight size={19} aria-hidden="true" focusable="false" />
             </button>
             <div className="hero-signature">
               <span>Tarunya Kesharwani</span>
               <span>Engineering ideas into reality.</span>
             </div>
           </div>
-          <button className="scroll-invitation" onClick={() => go(1)}>
-            <ArrowDown size={16} />
+          <button className="scroll-invitation" onClick={() => selectChapter(1)}>
+            <ArrowDown size={16} aria-hidden="true" focusable="false" />
             <span>SCROLL TO EXPLORE</span>
           </button>
           <div className="hero-aside">
@@ -130,7 +168,7 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               target="_blank"
               rel="noreferrer"
             >
-              Meet me on GitHub <ArrowUpRight size={16} />
+              Meet me on GitHub <ArrowUpRight size={16} aria-hidden="true" focusable="false" />
             </a>
           </div>
         </section>
@@ -151,7 +189,7 @@ function Portfolio({ onExit }: { onExit: () => void }) {
                     <strong>{p.name}</strong>
                     <small>{p.category}</small>
                   </span>
-                  <ArrowUpRight size={18} />
+                  <ArrowUpRight size={18} aria-hidden="true" focusable="false" />
                 </button>
               ))}
             </div>
@@ -178,7 +216,7 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               </div>
             </div>
             <button className="text-link" onClick={() => setProof(true)}>
-              Explore the work behind the story <ArrowUpRight size={17} />
+              Explore the work behind the story <ArrowUpRight size={17} aria-hidden="true" focusable="false" />
             </button>
           </div>
         </section>
@@ -204,17 +242,17 @@ function Portfolio({ onExit }: { onExit: () => void }) {
             <h2 id="horizon-title">{chapters[5].title}</h2>
             <p className="chapter-intro">{chapters[5].description}</p>
             <a className="primary-button" href={`mailto:${profile.email}`}>
-              Let’s build something <ArrowUpRight size={19} />
+              Let’s build something <ArrowUpRight size={19} aria-hidden="true" focusable="false" />
             </a>
             <div className="social-links">
               <a href={profile.github} target="_blank" rel="noreferrer">
-                GitHub <ArrowUpRight size={14} />
+                GitHub <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
               </a>
               <a href={profile.linkedin} target="_blank" rel="noreferrer">
-                LinkedIn <ArrowUpRight size={14} />
+                LinkedIn <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
               </a>
               <a href={profile.resume} target="_blank" rel="noreferrer">
-                Résumé <ArrowUpRight size={14} />
+                Résumé <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
               </a>
             </div>
             <a className="email-link" href={`mailto:${profile.email}`}>
@@ -223,13 +261,13 @@ function Portfolio({ onExit }: { onExit: () => void }) {
             <p className="small-note">
               Based in India. Open to a conversation about what comes next.
             </p>
-            <button className="text-link back-top" onClick={() => go(0)}>
-              Back to the beginning <MoveUpRight size={16} />
+            <button className="text-link back-top" onClick={() => selectChapter(0)}>
+              Back to the beginning <MoveUpRight size={16} aria-hidden="true" focusable="false" />
             </button>
           </div>
         </section>
-      </main>
-      <footer className="journey-footer">
+      </main>}
+      {reading && <footer className="journey-footer">
         <div className="current-location">
           <span className="location-mark" />
           <span>
@@ -243,7 +281,7 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               key={c.id}
               aria-label={`${c.name} district`}
               aria-current={active === i + 1 ? "step" : undefined}
-              onClick={() => go(i + 1)}
+              onClick={() => selectChapter(i + 1)}
             >
               <span>{c.number}</span>
               <span>{c.name}</span>
@@ -258,10 +296,10 @@ function Portfolio({ onExit }: { onExit: () => void }) {
           aria-expanded={map}
           onClick={() => setMap(true)}
         >
-          <Map size={17} />
+          <Map size={17} aria-hidden="true" focusable="false" />
           <span>World map</span>
         </button>
-      </footer>
+      </footer>}
       {map && (
         <DetailDialog
           title="World map and chapter navigation"
@@ -274,13 +312,12 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               <button
                 key={c.id}
                 onClick={() => {
-                  setMap(false);
-                  go(i);
+                  selectChapter(i);
                 }}
               >
                 <span>{c.number}</span>
                 <strong>{c.name}</strong>
-                <ArrowRight size={18} />
+                <ArrowRight size={18} aria-hidden="true" focusable="false" />
               </button>
             ))}
           </div>
@@ -290,6 +327,22 @@ function Portfolio({ onExit }: { onExit: () => void }) {
               ? "Reduced motion is enabled."
               : "Scroll at your own pace."}
           </p>
+        </DetailDialog>
+      )}
+      {profileDetails && (
+        <DetailDialog title="Tarunya’s profile" onClose={() => setProfileDetails(false)}>
+          <p className="eyebrow">ORIGIN</p>
+          <h2>Tarunya Kesharwani</h2>
+          <p className="dialog-intro">{profile.introduction}</p>
+          <div className="detail-copy">
+            <h3>Currently learning</h3>
+            <p>{profile.education}<br />{profile.school}</p>
+          </div>
+          <div className="social-links">
+            <a href={profile.github} target="_blank" rel="noreferrer">GitHub <ArrowUpRight aria-hidden="true" focusable="false" /></a>
+            <a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight aria-hidden="true" focusable="false" /></a>
+            <a href={`mailto:${profile.email}`}>Email <ArrowUpRight aria-hidden="true" focusable="false" /></a>
+          </div>
         </DetailDialog>
       )}
       {project && (
@@ -303,9 +356,9 @@ function Portfolio({ onExit }: { onExit: () => void }) {
           >
             <div className="architecture-diagram">
               <span>{project.stack[0]}</span>
-              <ArrowRight />
+              <ArrowRight aria-hidden="true" focusable="false" />
               <span>{project.stack[1]}</span>
-              <ArrowRight />
+              <ArrowRight aria-hidden="true" focusable="false" />
               <span>{project.stack[2]}</span>
             </div>
             <small>ARCHITECTURE STUDY / {project.name.toUpperCase()}</small>
@@ -329,7 +382,7 @@ function Portfolio({ onExit }: { onExit: () => void }) {
             target="_blank"
             rel="noreferrer"
           >
-            Explore the repository <ArrowUpRight size={18} />
+            Explore the repository <ArrowUpRight size={18} aria-hidden="true" focusable="false" />
           </a>
         </DetailDialog>
       )}
@@ -353,11 +406,16 @@ function Portfolio({ onExit }: { onExit: () => void }) {
                   rel="noreferrer"
                 >
                   {a.link}
-                  <ArrowUpRight size={16} />
+                  <ArrowUpRight size={16} aria-hidden="true" focusable="false" />
                 </a>
               </article>
             ))}
           </div>
+        </DetailDialog>
+      )}
+      {campaignDetails && (
+        <DetailDialog title="Build out loud campaign proposal" onClose={() => setCampaignDetails(false)}>
+          <CampaignDetails />
         </DetailDialog>
       )}
     </div>
