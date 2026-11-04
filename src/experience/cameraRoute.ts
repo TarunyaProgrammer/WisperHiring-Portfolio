@@ -1,119 +1,56 @@
-import gsap from 'gsap'
+import { CatmullRomCurve3, Vector3 } from "three";
 
-export type CameraPose = {
-  x: number
-  y: number
-  z: number
-  lookX: number
-  lookY: number
-  lookZ: number
-  fov: number
-}
-type CameraWaypoint = CameraPose & { at: number; ease: 'sine.inOut' }
+// One closed, gently banked route makes the ending return to the opening
+// threshold. The arch field and set pieces are authored against this spline.
+const routePoints = [
+  [0, 1.35, 19],
+  [0, 1.55, 2],
+  [-7, 2.1, -18],
+  [-17, 3.6, -38],
+  [-13, 4.4, -57],
+  [1, 2.2, -73],
+  [18, 1.8, -91],
+  [22, 5, -112],
+  [11, 7.5, -130],
+  [-7, 5.5, -146],
+  [-22, 3.2, -166],
+  [-21, 2.3, -185],
+  [-7, 3.5, -197],
+  [12, 5.8, -188],
+  [25, 8.5, -168],
+  [30, 11, -145],
+  [21, 10, -123],
+  [3, 6.2, -111],
+  [-14, 3.8, -98],
+  [-28, 2.4, -79],
+  [-31, 2.2, -56],
+  [-23, 2, -34],
+  [-10, 1.5, -15],
+  [0, 1.35, 19],
+].map(([x, y, z]) => new Vector3(x, y, z));
 
-// Lens, gaze, height, and timing are composed as one route. The early frames
-// establish the island, district frames descend to story scale, and transitions
-// climb above the terrain before turning toward the next landmark.
-export const cameraKeyframes: CameraWaypoint[] = [
-  { at: 0, x: 24, y: 23, z: 30, lookX: 0, lookY: 0, lookZ: 0, fov: 36, ease: 'sine.inOut' },
-  { at: 0.07, x: 20, y: 22, z: 27, lookX: -1, lookY: 0, lookZ: 1, fov: 37, ease: 'sine.inOut' },
-  { at: 0.105, x: 7, y: 20, z: 24, lookX: -3, lookY: 1, lookZ: 3, fov: 38, ease: 'sine.inOut' },
-  { at: 0.145, x: -16, y: 14, z: 20, lookX: -6, lookY: 1, lookZ: 4, fov: 39, ease: 'sine.inOut' },
-  { at: 0.205, x: -17, y: 9, z: 10, lookX: -6, lookY: 1.5, lookZ: 4, fov: 45, ease: 'sine.inOut' },
-  { at: 0.275, x: -10, y: 12, z: -2, lookX: -2, lookY: 1, lookZ: 1, fov: 42, ease: 'sine.inOut' },
-  { at: 0.33, x: 14, y: 13, z: 18, lookX: 4, lookY: 1, lookZ: 4, fov: 40, ease: 'sine.inOut' },
-  { at: 0.405, x: 17, y: 9, z: 7, lookX: 5, lookY: 1.2, lookZ: 3.8, fov: 46, ease: 'sine.inOut' },
-  { at: 0.44, x: 8, y: 15, z: 0, lookX: 2, lookY: 1, lookZ: 0, fov: 43, ease: 'sine.inOut' },
-  { at: 0.475, x: -3, y: 21, z: -8, lookX: 0, lookY: 1, lookZ: -1, fov: 40, ease: 'sine.inOut' },
-  { at: 0.505, x: -14, y: 15, z: -13, lookX: -5, lookY: 2, lookZ: -4, fov: 40, ease: 'sine.inOut' },
-  { at: 0.565, x: -15, y: 9, z: -1, lookX: -5, lookY: 2.5, lookZ: -4, fov: 47, ease: 'sine.inOut' },
-  { at: 0.615, x: -5, y: 16, z: -14, lookX: -1, lookY: 1, lookZ: -3, fov: 42, ease: 'sine.inOut' },
-  { at: 0.65, x: 7, y: 21, z: -17, lookX: 2, lookY: 1, lookZ: -3, fov: 40, ease: 'sine.inOut' },
-  { at: 0.68, x: 17, y: 13, z: -11, lookX: 5, lookY: 1, lookZ: -4.7, fov: 42, ease: 'sine.inOut' },
-  { at: 0.745, x: 12, y: 8, z: -15, lookX: 5, lookY: 1.6, lookZ: -4.7, fov: 47, ease: 'sine.inOut' },
-  { at: 0.815, x: 8, y: 18, z: 6, lookX: 1, lookY: 1, lookZ: 0, fov: 42, ease: 'sine.inOut' },
-  { at: 0.87, x: 22, y: 24, z: 29, lookX: 0, lookY: 0, lookZ: 0, fov: 37, ease: 'sine.inOut' },
-  { at: 0.94, x: 15, y: 18, z: 31, lookX: 2, lookY: 1, lookZ: 5, fov: 39, ease: 'sine.inOut' },
-  { at: 1, x: 24, y: 23, z: 30, lookX: 0, lookY: 0, lookZ: 0, fov: 36, ease: 'sine.inOut' },
-]
+export const journeyCurve = new CatmullRomCurve3(
+  routePoints.slice(0, -1),
+  true,
+  "catmullrom",
+  0.12,
+);
+journeyCurve.curveType = "centripetal";
+journeyCurve.arcLengthDivisions = 1200;
+journeyCurve.updateArcLengths();
 
-export const initialCameraPose: CameraPose = {
-  x: 24,
-  y: 23,
-  z: 30,
-  lookX: 0,
-  lookY: 0,
-  lookZ: 0,
-  fov: 36,
-}
+export const sampleCount = 320;
 
-export const districtCameraPoses: CameraPose[] = [
-  initialCameraPose,
-  cameraKeyframes[4],
-  cameraKeyframes[7],
-  cameraKeyframes[11],
-  cameraKeyframes[15],
-  cameraKeyframes[18],
-].map(({ x, y, z, lookX, lookY, lookZ, fov }) => ({
-  x,
-  y,
-  z,
-  lookX,
-  lookY,
-  lookZ,
-  fov,
-}));
-
-type MutablePoint = { x: number; y: number; z: number };
-type MutableLens = { fov: number; updateProjectionMatrix: () => void };
-export function createDistrictFlightTimeline(
-  cameraPosition: MutablePoint,
-  cameraTarget: MutablePoint,
-  lens: MutableLens,
-  destination: CameraPose,
-  onUpdate: () => void,
-  onComplete: () => void,
+export function sampleJourneyRoute(
+  progress: number,
+  position: Vector3,
+  tangent: Vector3,
 ) {
-  const timeline = gsap.timeline({
-    paused: true,
-    defaults: { duration: 0.95, ease: "power3.inOut" },
-    onUpdate,
-    onComplete,
-  });
-  timeline.to(cameraPosition, {
-    x: destination.x,
-    y: destination.y,
-    z: destination.z,
-  }, 0);
-  timeline.to(cameraTarget, {
-    x: destination.lookX,
-    y: destination.lookY,
-    z: destination.lookZ,
-  }, 0);
-  timeline.to(lens, {
-    fov: destination.fov,
-    onUpdate: () => lens.updateProjectionMatrix(),
-  }, 0);
-  return timeline;
+  const t = Math.min(1, Math.max(0, progress));
+  journeyCurve.getPointAt(t, position);
+  journeyCurve.getTangentAt(t, tangent).normalize();
 }
 
-export function createCameraTimeline(pose: CameraPose) {
-  Object.assign(pose, initialCameraPose)
-  const timeline = gsap.timeline({ paused: true })
-  for (let i = 1; i < cameraKeyframes.length; i++) {
-    const key = cameraKeyframes[i]
-    const previous = cameraKeyframes[i - 1]
-    timeline.to(pose, {
-      x: key.x,
-      y: key.y,
-      z: key.z,
-      lookX: key.lookX,
-      lookY: key.lookY,
-      lookZ: key.lookZ,
-      fov: key.fov,
-      duration: key.at - previous.at,
-      ease: key.ease,
-    })
-  }
-  return timeline
+export function routePointAt(progress: number, target = new Vector3()) {
+  return journeyCurve.getPointAt(Math.min(1, Math.max(0, progress)), target);
 }

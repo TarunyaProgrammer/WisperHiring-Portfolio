@@ -1,6 +1,6 @@
 # The World of Tarunya
 
-An original portfolio with a premium editorial Normal mode and a full-screen, explorable 3D Dream mode. Built with React 19, TypeScript, Vite, React Three Fiber 9, Drei and GSAP.
+A portfolio in two distinct experiences: **Wake**, an editorial portfolio, and **Dream**, a scroll-driven cinematic story through a bespoke 3D world. Built with React 19, TypeScript, Vite, React Three Fiber 9, Drei and GSAP.
 
 ## Run
 
@@ -14,24 +14,26 @@ npm run preview
 
 ## Architecture
 
-Normal and Dream are independent component trees. The default Normal experience does not preload Three.js. Enter Dream explicitly, or use `?mode=dream`. Browser Back/Forward restores the selected mode. Reading mode is a separate accessibility option within Dream.
+Wake and Dream are independent component trees. A first-visit `[ ENTER ]` gesture opens the selected mode and can start optional original ambient audio. The default Wake experience does not preload Three.js. Enter Dream from the persistent mode switch, or use `?mode=dream`. Browser Back/Forward restores the selected mode and Wake scroll position. Dream's camera and story share one reversible scroll timeline; the scene has no free zoom/orbit controls. A text reading mode provides the story without WebGL.
 
 - `src/App.tsx`: mode selection and lazy Dream loading.
 - `src/NormalPortfolio.tsx`: standalone editorial HTML portfolio.
 - `src/DreamExperience.tsx`: immersive world controls, reading mode, and story panels.
 - `src/data/portfolio.ts`: editable profile, projects, achievements, chapters and campaign.
-- `src/experience/controller.tsx`: district travel commands, reduced-motion preference, and reading state.
-- `src/experience/cameraRoute.ts`: authored destination poses for each district.
-- `src/experience/World.tsx`: procedural geometry, reused vegetation instances and interactive landmarks.
-- `src/experience/WorldCanvas.tsx`: persistent WebGL surface, lighting, error fallback and visibility handling.
+- `src/experience/controller.tsx`: scroll progress, active story beat and reduced-motion/reading state.
+- `src/experience/cameraRoute.ts`: authored camera poses along the Dream route.
+- `src/experience/World.tsx`: procedural Dream environment and landmark silhouettes.
+- `src/experience/WorldCanvas.tsx`: persistent WebGL scene and scroll-synchronized camera.
+- `src/experience/ambientMusic.ts`: gesture-gated, optional Web Audio ambience.
+- `src/wake.css`: editorial Wake design system and responsive layouts.
 - `src/interface`: accessible native dialogs and campaign tabs.
 - `AGENTS.md` and `CONTEXT.md`: instructions and current handoff state.
 
 Geometry is original, generated in code. No remote model downloads or API keys are required. Fonts are bundled locally. Reading mode works without the 3D layer. All key content and landmark actions are available in HTML.
 
-Dream mode fills the viewport with the world. OrbitControls support mouse, keyboard, and touch travel; district selection flies the camera with GSAP. No page-scroll camera hijack competes with exploration. Reading mode provides the full HTML story without WebGL. Repeated trees use instancing, pixel ratio is capped, and rendering pauses in hidden tabs. No performance score is claimed.
+Dream mode fills the viewport while the visitor scrolls through a continuous chase-camera route. Concise story panels stay synchronized with the camera and reverse cleanly with scroll. Reading mode provides the story without WebGL. Repeated environment details use shared geometry where appropriate, pixel ratio is capped, and rendering pauses in hidden tabs. No performance score is claimed.
 
-Project graphics are architecture illustrations, not fabricated screenshots. GSoC and mentorship descriptions are applicant-supplied; volatile counts and unsubstantiated performance metrics are intentionally excluded. See `docs/CONTENT-SOURCES.md`.
+The Wake sculpture and Dream corridor atmosphere are generated image assets. Dream's camera, route arches, chapter landmarks, skyline objects, and lighting remain live Three.js objects over the atmosphere plate; the distant traveler is part of that plate. GSoC and mentorship descriptions are applicant-supplied; volatile counts and unsubstantiated performance metrics are intentionally excluded. Personal details about the applicant's father are omitted until supplied by the applicant. See `docs/CONTENT-SOURCES.md`.
 
 ## Submission
 

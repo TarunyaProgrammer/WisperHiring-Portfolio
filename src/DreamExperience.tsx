@@ -1,430 +1,238 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { ArrowDown, ArrowUpRight, BookOpen, RotateCcw } from "lucide-react";
 import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  Map,
-  X,
-  MoveUpRight,
-} from "lucide-react";
+  achievements,
+  campaignStages,
+  chapters,
+  metrics,
+  profile,
+  projects,
+  skillGroups,
+} from "./data/portfolio";
 import { ExperienceProvider, useExperience } from "./experience/controller";
-import { chapters, projects, profile, achievements } from "./data/portfolio";
-import { DetailDialog } from "./interface/DetailDialog";
-import { Campaign, CampaignDetails } from "./interface/Campaign";
 import { ExperienceErrorBoundary } from "./interface/ExperienceErrorBoundary";
+import "./experience/dream.css";
+
 const WorldCanvas = lazy(() =>
-  import("./experience/WorldCanvas").then((m) => ({ default: m.MemoizedWorldCanvas })),
+  import("./experience/WorldCanvas").then((module) => ({ default: module.MemoizedWorldCanvas })),
 );
-function Portfolio({ onExit }: { onExit: () => void }) {
-  const { active, go, reading, setReading, reduced } = useExperience(),
-    [projectId, setProjectId] = useState<string | null>(null),
-    [proof, setProof] = useState(false),
-    [profileDetails, setProfileDetails] = useState(false),
-    [campaignDetails, setCampaignDetails] = useState(false),
-    [map, setMap] = useState(false);
-  const openProof = useCallback(() => setProof(true), []);
-  const openProfile = useCallback(() => setProfileDetails(true), []);
-  const openCampaign = useCallback(() => setCampaignDetails(true), []);
-  const scrollToChapter = useCallback((index: number) => {
-    document.getElementById(chapters[index].id)?.scrollIntoView({
-      behavior: reduced ? "instant" : "smooth",
-      block: "start",
-    });
-  }, [reduced]);
-  const selectChapter = useCallback((index: number) => {
-    setMap(false);
-    go(index);
-    if (reading) requestAnimationFrame(() => scrollToChapter(index));
-  }, [go, reading, scrollToChapter]);
-  const project = projects.find((p) => p.id === projectId);
+
+function Portfolio() {
+  const { active, go, reading, setReading, updateProgress } = useExperience();
+  const [track, setTrack] = useState<HTMLElement | null>(null);
+  const [stage, setStage] = useState(0);
+  const replay = useCallback(() => go(0), [go]);
+
   useEffect(() => {
-    const hash = location.hash.slice(1),
-      i = chapters.findIndex((c) => c.id === hash);
-    if (i < 0) return;
-    const frame = requestAnimationFrame(() => go(i));
-    return () => cancelAnimationFrame(frame);
-  }, [go]); // Initial deep-link only; chapter navigation uses the same DOM scroll.
+    if (!reading || !track) return;
+    const sections = Array.from(track.querySelectorAll<HTMLElement>(".dream-beat"));
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        const index = sections.indexOf(visible.target as HTMLElement);
+        if (index >= 0) updateProgress(chapters[index].progress);
+      },
+      { threshold: [0.55, 0.7] },
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [reading, track, updateProgress]);
+
+  const compactProjects = projects.slice(0, 4);
   return (
-    <div className={reading ? "portfolio reading-mode" : "portfolio immersive"}>
-      <a className="skip-link" href="#origin">
-        Skip to my story
-      </a>
-      {reading ? (
-        <header className="site-header reading-header">
-          <button className="wordmark" type="button" onClick={() => scrollToChapter(0)}>
-            <span className="brand-mark">t.</span>
-            <span>THE WORLD<br />OF TARUNYA</span>
-          </button>
-          <div className="header-actions">
-            <button className="exit-dream" type="button" onClick={onExit}>Normal mode</button>
-            <button className="mode-button" type="button" onClick={() => setReading(false)}>
-              <BookOpen size={15} aria-hidden="true" focusable="false" />
-              <span>Return to the world</span>
-            </button>
-          </div>
-        </header>
-      ) : (
-        <header className="immersive-controls" aria-label="World controls">
-          <div className="immersive-controls-group">
-            <button className="world-control" type="button" aria-label="Return to Normal mode" onClick={onExit}>
-              <X size={18} aria-hidden="true" focusable="false" />
-            </button>
-            <button className="world-control" type="button" aria-label="Open reading mode" onClick={() => setReading(true)}>
-              <BookOpen size={18} aria-hidden="true" focusable="false" />
-            </button>
-            <button className="world-control" type="button" aria-label="Open district map" aria-haspopup="dialog" aria-expanded={map} onClick={() => setMap(true)}>
-              <Map size={18} aria-hidden="true" focusable="false" />
-            </button>
-          </div>
-        </header>
-      )}
+    <div className={`dream-experience${reading ? " is-reading" : ""}`}>
+      <a className="dream-skip" href="#overview">Skip to story</a>
       {!reading && (
         <ExperienceErrorBoundary
           fallback={
-            <div className="scene-failure" role="alert">
-              <p>The 3D scene couldn’t load. Your story is still available below.</p>
-              <button onClick={() => setReading(true)}>
-                Continue in reading mode
-              </button>
-              <button onClick={() => window.location.reload()}>
-                Retry the 3D scene
-              </button>
+            <div className="dream-scene-fallback" role="status">
+              The 3D passage could not load. Continue through the story below.
             </div>
           }
         >
-          <Suspense
-            fallback={<div className="scene-loading" role="status">Preparing your world…</div>}
-          >
-            <WorldCanvas
-              onProject={setProjectId}
-              onProof={openProof}
-              onProfile={openProfile}
-              onCampaign={openCampaign}
-            />
+          <Suspense fallback={<div className="dream-loading" role="status">Preparing the passage…</div>}>
+            <WorldCanvas track={track} />
           </Suspense>
         </ExperienceErrorBoundary>
       )}
-      {reading && <main className="journey">
-        <section
-          className="chapter hero"
-          id="overview"
-          aria-labelledby="hero-title"
-        >
-          <div className="chapter-copy">
-            <p className="eyebrow hero-eyebrow">
-              <span className="tiny-line" /> ENGINEER. BUILDER. EXPLORER.
-            </p>
-            <h1 id="hero-title">
-              The world
-              <br />
-              of <em>Tarunya.</em>
-            </h1>
-            <p className="hero-tagline">
-              Don’t just read my story.
-              <br />
-              Explore it.
-            </p>
-            <p className="hero-description">{chapters[0].description}</p>
-            <button className="primary-button" onClick={() => selectChapter(1)}>
-              Enter my world <ArrowUpRight size={19} aria-hidden="true" focusable="false" />
-            </button>
-            <div className="hero-signature">
-              <span>Tarunya Kesharwani</span>
-              <span>Engineering ideas into reality.</span>
-            </div>
-          </div>
-          <button className="scroll-invitation" onClick={() => selectChapter(1)}>
-            <ArrowDown size={16} aria-hidden="true" focusable="false" />
-            <span>SCROLL TO EXPLORE</span>
-          </button>
-          <div className="hero-aside">
-            <span>BUILT WITH CURIOSITY.</span>
-            <span>Made to be explored.</span>
-          </div>
-        </section>
-        <section className="chapter" id="origin" aria-labelledby="origin-title">
-          <div className="chapter-copy">
-            <p className="eyebrow">01 / ORIGIN</p>
-            <h2 id="origin-title">{chapters[1].title}</h2>
-            <p className="chapter-intro">{chapters[1].description}</p>
-            <p className="body-copy">
-              I’m interested in the space between a technically sound system and
-              a product someone wants to use. Open source taught me to ask
-              better questions. Independent building taught me to follow them
-              through.
-            </p>
-            <div className="origin-note">
-              <span className="eyebrow">CURRENTLY</span>
-              <p>
-                {profile.education}
-                <br />
-                <span>{profile.school}</span>
-              </p>
-            </div>
-            <a
-              className="text-link"
-              href={profile.github}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Meet me on GitHub <ArrowUpRight size={16} aria-hidden="true" focusable="false" />
-            </a>
-          </div>
-        </section>
-        <section
-          className="chapter"
-          id="workshop"
-          aria-labelledby="workshop-title"
-        >
-          <div className="chapter-copy">
-            <p className="eyebrow">02 / THE WORKSHOP</p>
-            <h2 id="workshop-title">{chapters[2].title}</h2>
-            <p className="chapter-intro">{chapters[2].description}</p>
-            <div className="project-list">
-              {projects.map((p, i) => (
-                <button key={p.id} onClick={() => setProjectId(p.id)}>
-                  <span className="project-index">0{i + 1}</span>
-                  <span>
-                    <strong>{p.name}</strong>
-                    <small>{p.category}</small>
-                  </span>
-                  <ArrowUpRight size={18} aria-hidden="true" focusable="false" />
-                </button>
-              ))}
-            </div>
-            <p className="small-note">
-              Choose a project, or click a building in the world.
-            </p>
-          </div>
-        </section>
-        <section className="chapter" id="proof" aria-labelledby="proof-title">
-          <div className="chapter-copy">
-            <p className="eyebrow">03 / THE PROOF</p>
-            <h2 id="proof-title">{chapters[3].title}</h2>
-            <p className="chapter-intro">{chapters[3].description}</p>
-            <div className="proof-summary">
-              <span className="proof-year">’26</span>
-              <div>
-                <span className="eyebrow">GOOGLE SUMMER OF CODE</span>
-                <h3>C2SI · WebiU</h3>
-                <p>
-                  Event-driven backends.
-                  <br />
-                  Open-source collaboration.
-                </p>
-              </div>
-            </div>
-            <button className="text-link" onClick={() => setProof(true)}>
-              Explore the work behind the story <ArrowUpRight size={17} aria-hidden="true" focusable="false" />
-            </button>
-          </div>
-        </section>
-        <section
-          className="chapter signal-chapter"
-          id="signal"
-          aria-labelledby="signal-title"
-        >
-          <div className="chapter-copy">
-            <p className="eyebrow">04 / SIGNAL LAB</p>
-            <h2 id="signal-title">{chapters[4].title}</h2>
-            <p className="chapter-intro">{chapters[4].description}</p>
-            <Campaign />
-          </div>
-        </section>
-        <section
-          className="chapter horizon"
-          id="horizon"
-          aria-labelledby="horizon-title"
-        >
-          <div className="chapter-copy">
-            <p className="eyebrow">05 / THE HORIZON</p>
-            <h2 id="horizon-title">{chapters[5].title}</h2>
-            <p className="chapter-intro">{chapters[5].description}</p>
-            <a className="primary-button" href={`mailto:${profile.email}`}>
-              Let’s build something <ArrowUpRight size={19} aria-hidden="true" focusable="false" />
-            </a>
-            <div className="social-links">
-              <a href={profile.github} target="_blank" rel="noreferrer">
-                GitHub <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
-              </a>
-              <a href={profile.linkedin} target="_blank" rel="noreferrer">
-                LinkedIn <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
-              </a>
-              <a href={profile.resume} target="_blank" rel="noreferrer">
-                Résumé <ArrowUpRight size={14} aria-hidden="true" focusable="false" />
-              </a>
-            </div>
-            <a className="email-link" href={`mailto:${profile.email}`}>
-              {profile.email}
-            </a>
-            <p className="small-note">
-              Based in India. Open to a conversation about what comes next.
-            </p>
-            <button className="text-link back-top" onClick={() => selectChapter(0)}>
-              Back to the beginning <MoveUpRight size={16} aria-hidden="true" focusable="false" />
-            </button>
-          </div>
-        </section>
-      </main>}
-      {reading && <footer className="journey-footer">
-        <div className="current-location">
-          <span className="location-mark" />
-          <span>
-            <small>YOU ARE EXPLORING</small>
-            <strong>{chapters[active].name}</strong>
-          </span>
-        </div>
-        <nav className="chapter-nav" aria-label="District navigation">
-          {chapters.slice(1, 5).map((c, i) => (
-            <button
-              key={c.id}
-              aria-label={`${c.name} district`}
-              aria-current={active === i + 1 ? "step" : undefined}
-              onClick={() => selectChapter(i + 1)}
-            >
-              <span>{c.number}</span>
-              <span>{c.name}</span>
-            </button>
-          ))}
-        </nav>
+
+      <header className="dream-chrome" aria-label="Dream controls">
         <button
-          className="map-button"
+          className="dream-reading-toggle"
           type="button"
-          aria-label="Open world map and district navigation"
-          aria-haspopup="dialog"
-          aria-expanded={map}
-          onClick={() => setMap(true)}
+          aria-pressed={reading}
+          onClick={() => setReading(!reading)}
         >
-          <Map size={17} aria-hidden="true" focusable="false" />
-          <span>World map</span>
+          <BookOpen size={15} aria-hidden="true" />
+          <span>{reading ? "Return to the world" : "Reading mode"}</span>
         </button>
-      </footer>}
-      {map && (
-        <DetailDialog
-          title="World map and chapter navigation"
-          onClose={() => setMap(false)}
-        >
-          <p className="eyebrow">YOUR OWN PATH THROUGH THE WORLD</p>
-          <h2>Where to?</h2>
-          <div className="map-list">
-            {chapters.map((c, i) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  selectChapter(i);
-                }}
-              >
-                <span>{c.number}</span>
-                <strong>{c.name}</strong>
-                <ArrowRight size={18} aria-hidden="true" focusable="false" />
-              </button>
-            ))}
+      </header>
+
+      <main className="dream-track" ref={setTrack}>
+        <section className="dream-beat dream-beat--intro" id="overview" aria-labelledby="dream-title">
+          <div className="dream-copy">
+            <p className="dream-kicker"><span>00</span> / THE THRESHOLD</p>
+            <h1 id="dream-title">Hi, I’m<br /><em>Tarunya Kesharwani.</em></h1>
+            <p className="dream-lede">Scroll to explore the ideas, systems, and people that shape what I build.</p>
+            <button className="dream-scroll-cue" type="button" onClick={() => go(1)}>
+              <ArrowDown size={15} aria-hidden="true" />
+              <span>Begin the journey</span>
+            </button>
           </div>
-          <p className="small-note">
-            All chapters are accessible by keyboard.{" "}
-            {reduced
-              ? "Reduced motion is enabled."
-              : "Scroll at your own pace."}
-          </p>
-        </DetailDialog>
-      )}
-      {profileDetails && (
-        <DetailDialog title="Tarunya’s profile" onClose={() => setProfileDetails(false)}>
-          <p className="eyebrow">ORIGIN</p>
-          <h2>Tarunya Kesharwani</h2>
-          <p className="dialog-intro">{profile.introduction}</p>
-          <div className="detail-copy">
-            <h3>Currently learning</h3>
-            <p>{profile.education}<br />{profile.school}</p>
+        </section>
+
+        <section className="dream-beat dream-beat--right" id="origin" aria-labelledby="origin-title">
+          <div className="dream-copy">
+            <p className="dream-kicker"><span>01</span> / ORIGIN</p>
+            <h2 id="origin-title">Curiosity was the first tool.</h2>
+            <p>{chapters[1].description}</p>
+            <dl className="dream-facts">
+              <div><dt>STUDYING</dt><dd>{profile.education}</dd></div>
+              <div><dt>AT</dt><dd>{profile.school}</dd></div>
+              <div><dt>BASED IN</dt><dd>India · open to global collaboration</dd></div>
+            </dl>
+            <a className="dream-inline-link" href={profile.github} target="_blank" rel="noreferrer">
+              Follow the work on GitHub <ArrowUpRight size={15} aria-hidden="true" />
+            </a>
           </div>
-          <div className="social-links">
-            <a href={profile.github} target="_blank" rel="noreferrer">GitHub <ArrowUpRight aria-hidden="true" focusable="false" /></a>
-            <a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn <ArrowUpRight aria-hidden="true" focusable="false" /></a>
-            <a href={`mailto:${profile.email}`}>Email <ArrowUpRight aria-hidden="true" focusable="false" /></a>
-          </div>
-        </DetailDialog>
-      )}
-      {project && (
-        <DetailDialog title={project.name} onClose={() => setProjectId(null)}>
-          <p className="eyebrow">{project.category}</p>
-          <h2>{project.name}</h2>
-          <p className="dialog-intro">{project.summary}</p>
-          <div
-            className={`project-visual visual-${project.symbol}`}
-            style={{ "--project-color": project.color } as React.CSSProperties}
-          >
-            <div className="architecture-diagram">
-              <span>{project.stack[0]}</span>
-              <ArrowRight aria-hidden="true" focusable="false" />
-              <span>{project.stack[1]}</span>
-              <ArrowRight aria-hidden="true" focusable="false" />
-              <span>{project.stack[2]}</span>
-            </div>
-            <small>ARCHITECTURE STUDY / {project.name.toUpperCase()}</small>
-          </div>
-          <div className="detail-copy">
-            <h3>The problem</h3>
-            <p>{project.problem}</p>
-            <h3>How it works</h3>
-            <p>{project.architecture}</p>
-            <div className="stack">
-              {project.stack.map((s) => (
-                <span key={s}>{s}</span>
+        </section>
+
+        <section className="dream-beat" id="workshop" aria-labelledby="workshop-title">
+          <div className="dream-copy dream-copy--wide">
+            <p className="dream-kicker"><span>02</span> / THE WORKSHOP</p>
+            <h2 id="workshop-title">Ideas become useful when they work.</h2>
+            <p>{chapters[2].description}</p>
+            <div className="dream-project-list">
+              {compactProjects.map((project, index) => (
+                <article className="dream-project" key={project.id}>
+                  <span className="dream-project-index">0{index + 1}</span>
+                  <div>
+                    <h3>{project.name}</h3>
+                    <p>{project.summary}</p>
+                    <small>{project.stack.join(" · ")}</small>
+                  </div>
+                  <a href={project.url} target="_blank" rel="noreferrer" aria-label={`Open ${project.name} repository`}>
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </a>
+                </article>
               ))}
             </div>
-            <h3>The engineering question</h3>
-            <p>{project.learning}</p>
           </div>
-          <a
-            className="primary-button"
-            href={project.url}
-            target="_blank"
-            rel="noreferrer"
+        </section>
+
+        <section className="dream-beat dream-beat--right" id="skills" aria-labelledby="skills-title">
+          <div className="dream-copy dream-copy--wide">
+            <p className="dream-kicker"><span>03</span> / THE CONSTELLATION</p>
+            <h2 id="skills-title">Different tools.<br /><em>Connected systems.</em></h2>
+            <p>{chapters[3].description}</p>
+            <div className="dream-skill-groups">
+              {skillGroups.map((group) => (
+                <div className="dream-skill-group" key={group.name}>
+                  <h3>{group.name}</h3>
+                  <ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="dream-beat" id="proof" aria-labelledby="proof-title">
+          <div className="dream-copy dream-copy--wide">
+            <p className="dream-kicker"><span>04</span> / THE PROOF</p>
+            <h2 id="proof-title">Work speaks louder than credentials.</h2>
+            <p>{chapters[4].description}</p>
+            <div className="dream-proof-list">
+              {achievements.map((item) => (
+                <article key={item.title}>
+                  <p className="dream-proof-label">{item.label}</p>
+                  <h3>{item.title}</h3>
+                  <p>{item.description}</p>
+                  <a className="dream-inline-link" href={item.url} target="_blank" rel="noreferrer">
+                    {item.link} <ArrowUpRight size={14} aria-hidden="true" />
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="dream-beat dream-beat--right" id="signal" aria-labelledby="signal-title">
+          <div className="dream-copy dream-copy--wide">
+            <p className="dream-kicker"><span>05</span> / SIGNAL LAB</p>
+            <h2 id="signal-title">What if an idea began as a voice note?</h2>
+            <p>{chapters[5].description}</p>
+            <div className="dream-campaign">
+              <div className="dream-campaign-tabs" role="group" aria-label="Build out loud proposal stages">
+                {campaignStages.map((campaignStage, index) => (
+                  <button
+                    key={campaignStage.name}
+                    type="button"
+                    aria-pressed={stage === index}
+                    onClick={() => setStage(index)}
+                  >
+                    <span>0{index + 1}</span>{campaignStage.name}
+                  </button>
+                ))}
+              </div>
+              <section className="dream-campaign-panel" id="dream-stage-panel" aria-label={`${campaignStages[stage].name} stage`}>
+                <p className="dream-proof-label">{campaignStages[stage].label}</p>
+                <h3>{campaignStages[stage].title}</h3>
+                <p>{campaignStages[stage].body}</p>
+              </section>
+              <div className="dream-measurement" aria-label="Proposed measurement journey">
+                {metrics.map((metric, index) => <span key={metric}>{index > 0 && <i aria-hidden="true" />}{metric}</span>)}
+              </div>
+              <p className="dream-proposal-note">A proposed experiment. No campaign results are claimed.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="dream-beat dream-beat--ending" id="horizon" aria-labelledby="horizon-title">
+          <div className="dream-copy dream-copy--ending">
+            <p className="dream-kicker"><span>06</span> / THE HORIZON</p>
+            <h2 id="horizon-title">Every world<br />needs its next chapter.</h2>
+            <p>{chapters[6].description}</p>
+            <a className="dream-contact-link" href={`mailto:${profile.email}`}>
+              Let’s build something <ArrowUpRight size={16} aria-hidden="true" />
+            </a>
+            <nav className="dream-socials" aria-label="More about Tarunya">
+              <a href={profile.github} target="_blank" rel="noreferrer">GitHub</a>
+              <a href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+              <a href={profile.resume} target="_blank" rel="noreferrer">Résumé</a>
+            </nav>
+            <button className="dream-replay" type="button" onClick={replay}>
+              <RotateCcw size={15} aria-hidden="true" />
+              <span>Replay from the beginning</span>
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <nav className="dream-progress" aria-label="Story chapters">
+        {chapters.map((chapter, index) => (
+          <button
+            key={chapter.id}
+            type="button"
+            aria-label={`Scroll to ${chapter.name}`}
+            aria-current={active === index ? "step" : undefined}
+            onClick={() => go(index)}
           >
-            Explore the repository <ArrowUpRight size={18} aria-hidden="true" focusable="false" />
-          </a>
-        </DetailDialog>
-      )}
-      {proof && (
-        <DetailDialog
-          title="Open-source work and education"
-          onClose={() => setProof(false)}
-        >
-          <p className="eyebrow">03 / THE PROOF</p>
-          <h2>A practice of showing up.</h2>
-          <div className="achievement-list">
-            {achievements.map((a) => (
-              <article key={a.title}>
-                <p className="eyebrow">{a.label}</p>
-                <h3>{a.title}</h3>
-                <p>{a.description}</p>
-                <a
-                  className="text-link"
-                  href={a.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {a.link}
-                  <ArrowUpRight size={16} aria-hidden="true" focusable="false" />
-                </a>
-              </article>
-            ))}
-          </div>
-        </DetailDialog>
-      )}
-      {campaignDetails && (
-        <DetailDialog title="Build out loud campaign proposal" onClose={() => setCampaignDetails(false)}>
-          <CampaignDetails />
-        </DetailDialog>
-      )}
+            <span />
+          </button>
+        ))}
+      </nav>
+      <p className="dream-sr-only" aria-live="polite">{chapters[active].name}</p>
     </div>
   );
 }
-export default function DreamExperience({ onExit }: { onExit: () => void }) {
+
+export default function DreamExperience() {
   return (
     <ExperienceProvider>
-      <Portfolio onExit={onExit} />
+      <Portfolio />
     </ExperienceProvider>
   );
 }

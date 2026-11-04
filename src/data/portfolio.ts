@@ -12,52 +12,73 @@ export const profile = {
 export const chapters = [
   {
     id: "overview",
-    name: "The world",
+    name: "The threshold",
     number: "00",
-    title: "Don’t just read my story. Explore it.",
+    progress: 0,
+    title: "Hi, I’m Tarunya Kesharwani.",
     description:
-      "An engineer’s mind, expressed as a world. Take a little journey through what I build, what I believe, and what comes next.",
+      "Scroll to explore the ideas, systems, and people that shape what I build.",
   },
   {
     id: "origin",
     name: "Origin",
     number: "01",
-    title: "Everything starts with an idea.",
+    progress: 1 / 6,
+    title: "Curiosity was the first tool.",
     description:
-      "I’m Tarunya. A second-year computer science & AI student who likes turning a “what if” into something you can actually use.",
+      "I study computer science and artificial intelligence at Newton School of Technology, and learn by turning questions into working systems.",
   },
   {
     id: "workshop",
     name: "The Workshop",
     number: "02",
-    title: "Ideas are only the beginning.",
+    progress: 2 / 6,
+    title: "Ideas become useful when they work.",
     description:
-      "The interesting part is making them work. Step inside the workshop: real-time systems, local-first tools, and open-source infrastructure.",
+      "A few projects, each built around a concrete engineering problem.",
+  },
+  {
+    id: "skills",
+    name: "The Constellation",
+    number: "03",
+    progress: 3 / 6,
+    title: "Different tools. Connected systems.",
+    description:
+      "A map of the languages, platforms, and practices I have worked with while building products and contributing to open source.",
   },
   {
     id: "proof",
     name: "The Proof",
-    number: "03",
+    number: "04",
+    progress: 4 / 6,
     title: "Work speaks louder than credentials.",
     description:
-      "Building in public means learning in public, too. My work spans open-source systems, maintainer tools, and helping other developers find their footing.",
+      "Open-source work means learning in public: making changes, explaining decisions, and helping other contributors find their footing.",
   },
   {
     id: "signal",
     name: "Signal Lab",
-    number: "04",
-    title: "Let’s make voice the next building tool.",
+    number: "05",
+    progress: 5 / 6,
+    title: "What if an idea began as a voice note?",
     description:
-      "A proposal for Wispr Flow: help student builders turn a spoken idea into something worth sharing. Then measure what happens after the video ends.",
+      "A proposed campus experiment: help student builders turn a spoken idea into a project worth sharing, then learn from what happens next.",
   },
   {
     id: "horizon",
     name: "The Horizon",
-    number: "05",
+    number: "06",
+    progress: 1,
     title: "Every world needs its next chapter.",
     description:
-      "I bring an engineer’s approach to creative work: make something meaningful, put it in people’s hands, and learn from what they do.",
+      "Build something meaningful, put it in people’s hands, and learn from what they do.",
   },
+] as const;
+export const skillGroups = [
+  { name: "Product engineering", items: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Zustand"] },
+  { name: "Services & data", items: ["Node.js", "NestJS", "Hono", "PostgreSQL", "Supabase", "MongoDB", "Redis", "IndexedDB"] },
+  { name: "AI & workflows", items: ["Gemini", "OpenAI API", "LangChain", "RAG", "Structured outputs"] },
+  { name: "Delivery", items: ["Cloudflare Workers", "Docker", "GitHub Actions", "Vercel", "WebSockets"] },
 ] as const;
 export type Project = {
   id: string;

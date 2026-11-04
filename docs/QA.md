@@ -1,30 +1,25 @@
-# Production readiness record
+# Production readiness notes
 
-Updated 2026-11-04.
+Last reviewed: 2026-11-04
 
-## Automated checks
+## Checks completed
 
-- `npm run build` passed: strict TypeScript and Vite production output.
-- `npm run verify` passed: Normal SSR/content, lazy 3D entry, production assets, district poses, and reversible GSAP flight samples. Vite logged a sandbox `listen EPERM` WebSocket warning while running the verifier; assertions completed and passed.
-- `git diff --check` passed.
-- Current scene chunk: 932.64 kB minified / 253.76 kB gzip; Vite emits its >500 kB chunk warning. This is a bundle size warning, not a measured runtime failure.
+- `npm run build` passes TypeScript and creates a production Vite build. Wake ships separately from the Dream/WebGL chunks; Dream dependencies are loaded on demand.
+- `npm run verify` passes server-rendered Wake checks, profile/project URL checks, story chapter ordering, closed route geometry, scroll-timeline wiring, and production asset checks.
+- `git diff --check` passes.
+- Impeccable source scan: no critical failures. It reports advisory font-family warnings for the bundled Inter/Instrument Serif pairing and one layout-transition warning in Dream CSS.
+- Headless Chrome on the local production preview reached the black Enter gate, opened Wake and Dream, advanced to a later chapter using navigation, and returned to the first chapter by reversing scroll. No page errors appeared. At a 390px mobile viewport, Dream had no horizontal overflow.
 
-## Implemented and code-reviewed
+## Known limits
 
-- Normal and Dream are separate route-like experiences; Dream loads lazily.
-- Dream is a full-screen Canvas without persistent editorial copy. OrbitControls provide direct mouse, keyboard and touch camera exploration; icon-only controls expose exit, reading mode and map. District map choices command GSAP camera position, target and lens flights. Reading mode contains the long-form story.
-- Interactive buildings open contextual profile, project, achievement and campaign details. Drei HTML labels have pointer events disabled at the overlay layer so the underlying 3D object can receive pointer input.
-- Reduced motion, error boundaries, WebGL context loss/restore, hidden-tab pause, RAF cancellation, stable route data, touch target/safe-area handling and dialog keyboard/focus behavior have implementation coverage.
-- Palette now uses plum, rose and warm ivory in Normal mode; Dream keeps natural vegetation.
+- No public deployment was created or inspected. The user explicitly asked to keep the project local and on GitHub.
+- Dream layers a generated atmospheric corridor plate with transparent live 3D arches, desktop skyline landmarks, particles, a parallax camera route, and scroll-synchronized story. It is not a physics simulation or free-flight environment.
+- Headless checks do not establish frame rate or sound quality on physical devices. Verify graphics, audio, and touch scroll on a lower-powered phone before claiming full production readiness.
+- Family content about the applicant's father is omitted until the applicant supplies the details.
 
-## Browser QA status
+## Remaining production work
 
-- The private registered Sites URL returns 401/sign-in required. No public deployment was attempted; user said “Keep local and GitHub only.” Deployed-site verification is therefore unavailable.
-- Local preview at 4173: Dream has one full-viewport Canvas and no persistent story copy. District map → Signal Lab visibly flies from aerial overview to beacon framing and closes the map. Tapping the beacon at 360×732 opens campaign details. Cabin opens with keyboard focus + Enter. Reading mode removes Canvas and exposes the story. Returning to Normal updates `mode=normal`; browser Back restores Dream.
-- Local mobile: Dream at 360px and Normal at 390px had no horizontal overflow. Canvas landmark tap reached the 3D object. Tested route/interactions produced zero console warnings/errors.
-- The initial Playwright attempt treated a Drei label as a pointer target; that was incorrect because its HTML overlay intentionally has `pointerEvents="none"`. Keyboard activation and direct object pointer input both work.
-- These checks cover representative interactions and emulated viewport sizes, not all browsers/devices or visual fidelity. No frame-rate/performance score is claimed.
-
-## Applicant-owned items
-
-Voice sample, application video, role/availability confirmation, and grant choice remain in `docs/SUBMISSION.md`.
+- Verify graphics, audio, and touch scroll on a physical mobile device.
+- Confirm graphics and audio behavior on a lower-powered device and a browser without WebGL.
+- Recheck all profile and project claims against applicant-owned source links before public release.
+- Run a remote link check and inspect the actual public deployment only after the user authorizes a deployment destination.

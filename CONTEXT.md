@@ -2,31 +2,44 @@
 
 Last updated: 2026-11-04 (Asia/Kolkata).
 
-## Objective
+## Objective and constraints
 
-Build an original portfolio for Tarunya Kesharwani and the Wispr Flow hiring challenge. Keep the normal portfolio and the Dream world as distinct experiences. User wants a luxurious, distinctive normal site and a full-screen, playable Dream with no persistent story copy. User explicitly authorized local/GitHub work and milestone pushes. Do not publish or upload this content to Sites.
+Build The World of Tarunya for the Wispr Flow hiring challenge. User approved a high-end editorial Wake mode and a full-screen, scroll-driven Dream story. Identity spelling confirmed as Tarunya Kesharwani. The user explicitly said keep the work local and on GitHub only; do not publish to Sites or another host. User authorized pushing major milestones.
 
-## Current product decisions
+Do not invent metrics, testimonials, campaign results, or personal history. The requested story about the applicant's father is omitted until they provide a real detail. GSoC and mentorship claims are applicant-supplied; do not imply independent verification.
 
-- React 19, TypeScript, Vite, R3F/Three.js/Drei, GSAP. `App.tsx` lazy-loads Dream; Normal does not import the 3D scene or controller.
-- Normal uses a plum, rose and warm ivory editorial palette; green was rejected. Instrument Serif + Inter remain the type pairing.
-- Dream is immersive edge-to-edge Canvas. No persistent story text; minimal icon-only controls open/exit, reading mode and district map. OrbitControls support drag/touch/keyboard camera exploration; districts animate with GSAP position, target and lens flights. Scroll does not move the Dream camera. Reading mode is separate accessible HTML content.
-- World uses authored low-poly island geography and four districts, shared material language, distinct landmark silhouettes, interactive buildings and contextual dialogs.
-- Keep all biography/project/campaign content in `src/data/portfolio.ts`; don't invent claims or metrics. Campaign projections remain labelled as proposals.
-- `AGENTS.md` has implementation boundaries and handoff rules. `docs/BRIEF.md`, `docs/CONTENT-SOURCES.md`, and `docs/SUBMISSION.md` preserve source requirements and uncompleted applicant tasks.
+## Current implementation
 
-## Current engineering work
+- `App.tsx` begins at a black `[ ENTER ]` gate. The user gesture opens Wake or Dream and can start optional original Web Audio ambience. Sound can be disabled before or after entry.
+- Wake (`NormalPortfolio.tsx` and `wake.css`) is a responsive editorial page with a quiet grid, large typography, transparent sculptural artwork, restrained pointer-follow violet light and tilt, project and proof narratives, Signal Lab proposal, contact links, and a persistent Wake/Dream switch.
+- Dream (`DreamExperience.tsx`, `dream.css`) follows seven story beats. One fixed Canvas, authored closed camera route and HTML chapter sequence track one scroll timeline. GSAP ScrollTrigger scrubs in both directions. The traveler is part of the atmospheric art plate; there are no OrbitControls or manual zoom controls. The ending returns visually to the opening pose with a particle flourish and deliberate replay control.
+- Dream remains lazy-loaded; Wake does not import the Three.js renderer. A reading mode presents the full story without WebGL. Reduced motion, skip links, labeled controls, responsive layouts, and a WebGL error fallback are present.
+- Four fictionalized project summaries use the exact supplied repository URLs. Their architecture and learning copy is narrative explanation, not a claim of measured results.
+- `DESIGN.md`, `PRODUCT.md`, `AGENTS.md`, `docs/CONTENT-SOURCES.md` and `docs/QA.md` describe the accepted design and project truth.
+- Generated assets: `public/images/wake-sculpture.png` is used in Wake; `public/images/dream-environment.jpg` is a full-bleed Dream atmosphere plate behind the live transparent WebGL camera route, arch overlays, and desktop landmarks. The original design reference stays in `docs/art-direction/`.
 
-Recent production audit/design pass includes error boundaries for lazy Dream/scene failures, WebGL loss/restore listeners with cleanup, cancelled deep-link RAF, stable geometry route data, disposed GSAP hover tweens, reduced-motion handling, mobile safe areas/touch targets, decorative icon semantics, improved dialog content and label hit testing. Removed the obsolete scroll-driven CameraRig; District flights are explicit and reversible. Normal visual design was updated away from forest green.
+## Verification completed this session
 
-## Verification and limitations
-
-- Run `npm run build`, `npm run verify`, and `git diff --check` after source changes. The verify script checks SSR/data, code-split boundary, production assets, authored poses and reversible GSAP camera behavior. It is not a substitute for browser interaction QA.
-- Local Playwright QA at 4173 passed representative routes: Dream map → Signal Lab visibly flies to beacon framing; direct mobile beacon tap opens campaign details; Cabin opens by keyboard; reading mode removes Canvas; mode URL and Back work; 360px Dream and 390px Normal have no horizontal overflow; zero console warnings/errors. Drei HTML labels intentionally have `pointerEvents="none"`, allowing pointer input to reach the 3D landmark; labels remain keyboard focusable.
-- The world bundle is large enough to emit Vite's chunk warning. Keep an eye on code splitting/assets; no performance score has been measured.
-- Registered Sites URL requires sign-in (401); no independent deployed QA is possible. User explicitly said “Keep local and GitHub only”; do not retry deployment or upload.
-- GitHub remote is `origin/main`; user requested ongoing milestone pushes. Commit only after build, verify and review. Never commit `.playwright-cli`, `dist`, credentials or `node_modules`.
+- `npm run build`: passes TypeScript and Vite production build. Three.js is split into its own lazy vendor chunk (about 181 KB gzip); React Three Fiber and GSAP are split separately.
+- `npm run verify`: passes rendered Wake, project links, chapter order, closed Dream route, scroll timeline wiring, and production asset checks.
+- `git diff --check`: passes.
+- Impeccable scan: no critical findings; advisory font-family and one Dream CSS layout-transition warning remain.
+- Headless Chrome on the local production preview opened the black Enter gate, Wake, and Dream. Chapter navigation advanced, reversed with scroll, and rendered without page errors. At 390px, Dream had no horizontal overflow. The rendered environment still benefits from visual QA on a physical mobile device and lower-powered hardware.
+- No public deployment was created or checked, by user instruction.
 
 ## Remaining work
 
-Interaction QA for map-to-camera travel, landmark click, reading mode, Normal/Dream history and representative mobile viewports is complete. Re-run build/verify after final style cleanup, then push to GitHub. Browser-confirmed external deployment is intentionally outstanding. Applicant-owned work in `docs/SUBMISSION.md` remains outstanding.
+- Recheck reading mode, audio and failure paths if changing their code; verify mobile graphics and audio on a physical device.
+- Independently inspect a public deployed build only if the user later authorizes a hosting destination.
+- Re-check applicant-owned source links and claims before public release.
+
+## Commands
+
+```sh
+npm run dev
+npm run build
+npm run verify
+npm run preview
+```
+
+See `docs/QA.md` for the latest evidence and known limits.

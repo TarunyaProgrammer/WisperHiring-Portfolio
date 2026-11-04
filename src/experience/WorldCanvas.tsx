@@ -1,209 +1,150 @@
-import { Component, memo, Suspense, useEffect, useRef, useState } from "react";
+import { Component, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MutableRefObject, ReactNode } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Sky } from "@react-three/drei";
-import { PerspectiveCamera } from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { useExperience, useExperienceMode, useReducedMotion } from "./controller";
-import { createDistrictFlightTimeline, districtCameraPoses } from "./cameraRoute";
+import { ACESFilmicToneMapping } from "three";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import gsap from "gsap";
+import { useExperience } from "./controller";
 import { World } from "./World";
+import { chapters } from "../data/portfolio";
+gsap.registerPlugin(ScrollTrigger);
+
 class SceneBoundary extends Component<
   { children: ReactNode; onError: () => void },
   { failed: boolean }
 > {
   state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
+  static getDerivedStateFromError() { return { failed: true }; }
   componentDidCatch(error: Error) {
-    console.error("The 3D world failed to render.", error);
+    console.error("The Dream world failed to render.", error);
     this.props.onError();
   }
-  render() {
-    return this.state.failed ? null : this.props.children;
-  }
+  render() { return this.state.failed ? null : this.props.children; }
 }
-function CameraTravel({
-  controls,
+
+function ScrollProgress({
+  track,
+  invalidate,
 }: {
-  controls: MutableRefObject<OrbitControlsImpl | null>;
+  track: HTMLElement | null;
+  invalidate: MutableRefObject<(() => void) | null>;
 }) {
-  const { cameraPose, travel } = useExperience();
-  const reduced = useReducedMotion();
-  const camera = useThree((state) => state.camera);
+  const { progress, updateProgress, reduced } = useExperience();
+  const invalidateFrame = useThree((state) => state.invalidate);
 
   useEffect(() => {
-    if (travel.sequence === 0) return;
-    const controlsInstance = controls.current;
-    const pose = districtCameraPoses[travel.district];
-    if (!controlsInstance || !pose) return;
+    invalidate.current = invalidateFrame;
+    return () => { invalidate.current = null; };
+  }, [invalidate, invalidateFrame]);
 
-    const perspective = camera as PerspectiveCamera;
-    if (reduced) {
-      camera.position.set(pose.x, pose.y, pose.z);
-      controlsInstance.target.set(pose.lookX, pose.lookY, pose.lookZ);
-      perspective.fov = pose.fov;
-      perspective.updateProjectionMatrix();
-      controlsInstance.update();
-      Object.assign(cameraPose.current, pose);
-      return;
-    }
-
-    controlsInstance.enabled = false;
-    const timeline = createDistrictFlightTimeline(
-      camera.position,
-      controlsInstance.target,
-      perspective,
-      pose,
-      () => controlsInstance.update(),
-      () => {
-        controlsInstance.enabled = true;
-        Object.assign(cameraPose.current, pose);
-      },
-    );
-    timeline.play();
-    const visibility = () => {
-      if (document.hidden) timeline.pause();
-      else timeline.resume();
-    };
-    document.addEventListener("visibilitychange", visibility);
-    return () => {
-      document.removeEventListener("visibilitychange", visibility);
-      timeline.kill();
-      controlsInstance.enabled = true;
-    };
-  }, [camera, cameraPose, controls, reduced, travel]);
+  useLayoutEffect(() => {
+    if (!track) return;
+    const driver = { value: progress.current };
+    const context = gsap.context(() => {
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: track,
+          start: "top top",
+          end: "bottom bottom",
+          scrub: reduced ? true : 0.55,
+          invalidateOnRefresh: true,
+          onRefresh: (self) => {
+            driver.value = self.progress;
+            updateProgress(driver.value);
+            invalidate.current?.();
+          },
+        },
+        onUpdate: () => {
+          const environment = document.querySelector<HTMLElement>(".dream-world-canvas");
+          if (environment) {
+            environment.style.backgroundPosition = `50% ${52 + driver.value * 10}%`;
+          }
+          const value = reduced && chapters.length > 1
+            ? Math.min(1, Math.round(driver.value * chapters.length) / chapters.length)
+            : driver.value;
+          updateProgress(value);
+          invalidate.current?.();
+        },
+      });
+      timeline.fromTo(driver, { value: progress.current }, { value: 1, duration: 1, ease: "none" });
+      ScrollTrigger.refresh();
+    }, track);
+    return () => context.revert();
+  }, [track, reduced, progress, updateProgress, invalidate]);
 
   return null;
 }
-export function WorldCanvas({
-  onProject,
-  onProof,
-  onProfile,
-  onCampaign,
-}: {
-  onProject: (id: string) => void;
-  onProof: () => void;
-  onProfile: () => void;
-  onCampaign: () => void;
-}) {
-  const { reading, setReading } = useExperienceMode(),
-    reduced = useReducedMotion(),
-    [visible, setVisible] = useState(!document.hidden),
-    [ready, setReady] = useState(false),
-    [sceneFailed, setSceneFailed] = useState(false),
-    [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
-  const controls = useRef<OrbitControlsImpl | null>(null);
+
+export function WorldCanvas({ track }: { track: HTMLElement | null }) {
+  const { reading, reduced } = useExperience();
+  const [visible, setVisible] = useState(!document.hidden);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const invalidate = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     const change = () => setVisible(!document.hidden);
     document.addEventListener("visibilitychange", change);
     return () => document.removeEventListener("visibilitychange", change);
   }, []);
+
   useEffect(() => {
+    const canvas = document.querySelector<HTMLCanvasElement>(".dream-world-canvas canvas");
     if (!canvas) return;
     const lost = (event: Event) => {
       event.preventDefault();
-      setSceneFailed(true);
+      setFailed(true);
     };
-    const restored = () => setSceneFailed(false);
+    const restored = () => setFailed(false);
     canvas.addEventListener("webglcontextlost", lost);
     canvas.addEventListener("webglcontextrestored", restored);
     return () => {
       canvas.removeEventListener("webglcontextlost", lost);
       canvas.removeEventListener("webglcontextrestored", restored);
     };
-  }, [canvas]);
+  }, [reading]);
+
   if (reading) return null;
   return (
-    <div
-      className="world-canvas"
-      role="group"
-      aria-label="Interactive world. Use the keyboard, mouse, or touch controls to explore. Focus a landmark to hear its action."
-    >
-      {!ready && !sceneFailed && (
-        <div className="scene-loading" role="status" aria-label="Preparing the world">
-          <span className="loading-indicator" aria-hidden="true" />
-          <span className="visually-hidden">Preparing your world…</span>
-        </div>
-      )}
-      <SceneBoundary onError={() => setSceneFailed(true)}>
-        <Canvas
-          shadows
-          dpr={[1, 1.5]}
-          camera={{ position: [24, 23, 30], fov: 36, near: 0.1, far: 180 }}
-          frameloop={!visible ? "never" : reduced ? "demand" : "always"}
-          gl={{
-            antialias: true,
-            alpha: true,
-            powerPreference: "high-performance",
-          }}
-          fallback={
-            <button
-              className="canvas-fallback"
-              onClick={() => setReading(true)}
-              type="button"
-            >
-              3D is unavailable. Open reading mode.
-            </button>
-          }
-          onCreated={({ gl }) => {
-            setReady(true);
-            setCanvas(gl.domElement);
-          }}
-        >
-          <Sky distance={450000} sunPosition={[-24, 9, -18]} turbidity={8} rayleigh={1.8} mieCoefficient={0.005} mieDirectionalG={0.82} />
-          <fog attach="fog" args={["#596f6d", 40, 105]} />
-          <ambientLight intensity={0.6} />
-          <hemisphereLight args={["#ffe1b1", "#536f6c", 1.6]} />
-          <directionalLight
-            position={[-10, 24, 12]}
-            color="#ffd19b"
-            intensity={3.5}
-            castShadow
-            shadow-mapSize={reduced ? 512 : 1024}
-            shadow-camera-left={-18}
-            shadow-camera-right={18}
-            shadow-camera-top={18}
-            shadow-camera-bottom={-18}
-            shadow-bias={-0.001}
-          />
-          <Suspense fallback={null}>
-            <World
-              onProject={onProject}
-              onProof={onProof}
-              onProfile={onProfile}
-              onCampaign={onCampaign}
-            />
-            <CameraTravel controls={controls} />
-            <OrbitControls
-              ref={controls}
-              makeDefault
-              enableDamping={!reduced}
-              dampingFactor={0.08}
-              enablePan
-              enableRotate
-              enableZoom
-              keyEvents
-              minDistance={8}
-              maxDistance={48}
-              minPolarAngle={0.15}
-              maxPolarAngle={Math.PI / 2.05}
-            />
-          </Suspense>
-        </Canvas>
-      </SceneBoundary>
-      {sceneFailed && (
-        <div className="scene-failure" role="alert">
-          <p>The 3D scene stopped. Continue with the text version of the story.</p>
-          <button type="button" onClick={() => setReading(true)}>
-            Continue in reading mode
-          </button>
-          <button type="button" onClick={() => window.location.reload()}>
-            Reload the 3D scene
-          </button>
+    <div className="dream-world-canvas">
+      {!failed ? (
+        <SceneBoundary onError={() => setFailed(true)}>
+          {!ready && <div className="dream-loading" role="status">Preparing the passage…</div>}
+          <Canvas
+            dpr={reduced ? [1, 1.1] : [1, 1.4]}
+            frameloop={!visible ? "never" : reduced ? "demand" : "always"}
+            camera={{ position: [0, 4.4, 25], fov: 44, near: 0.1, far: 360 }}
+            gl={{
+              antialias: true,
+              alpha: true,
+              powerPreference: "high-performance",
+              toneMapping: ACESFilmicToneMapping,
+            }}
+            onCreated={({ gl }) => {
+              setReady(true);
+              gl.setClearColor("#100b17", 0);
+              gl.domElement.setAttribute("aria-hidden", "true");
+            }}
+          >
+            <fog attach="fog" args={["#171020", 34, 180]} />
+            <ambientLight intensity={0.9} color="#c4b8dd" />
+            <hemisphereLight args={["#c7b8ef", "#1d1425", 0.9]} />
+            <directionalLight position={[9, 18, 16]} color="#fff0df" intensity={3.1} />
+            <pointLight position={[0, 10, 8]} color="#ae8cff" intensity={170} distance={62} decay={2} />
+            <pointLight position={[-8, 5, -24]} color="#825aff" intensity={48} distance={42} />
+            <pointLight position={[10, 6, -104]} color="#fb9ecf" intensity={54} distance={50} />
+            <pointLight position={[0, 8, -176]} color="#8ed9ff" intensity={68} distance={56} />
+            <ScrollProgress track={track} invalidate={invalidate} />
+            <World />
+          </Canvas>
+        </SceneBoundary>
+      ) : (
+        <div className="dream-scene-fallback" role="status">
+          <span>The 3D world is unavailable. Continue with the story below.</span>
         </div>
       )}
     </div>
   );
 }
+
 export const MemoizedWorldCanvas = memo(WorldCanvas);
