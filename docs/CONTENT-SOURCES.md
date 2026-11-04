@@ -7,3 +7,5 @@ User reports GSoC 2026 developer at C2SI on WebiU, open-source mentorship at GSS
 Omit volatile counts (114+ PRs, 77+ repositories, 100+ mentees), competitive rating and 60% API overhead claim until independently supported. Generic program homepage is not individual selection evidence. Existing portfolio URL is not a live project URL for Vyay. Do not present profile URLs as specific repositories or articles.
 
 Use only exact supplied project repository URLs. Project illustrations in the new experience are architectural representations, not screenshots. Growth proposal is hypothetical and has no recorded outcomes. Voice use requires applicant evidence; never claim the agent used Wispr Flow.
+
+The applicant supplied `bgmusic.mp3` and reported that it came from Pixabay. The file is served from `public/audio/bgmusic.mp3`; the original track title, creator, and item URL were not included.

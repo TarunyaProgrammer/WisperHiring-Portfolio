@@ -14,7 +14,7 @@ npm run preview
 
 ## Architecture
 
-Wake and Dream are independent component trees. A first-visit `[ ENTER ]` gesture opens the selected mode and can start optional original ambient audio. The default Wake experience does not preload Three.js. Enter Dream from the persistent mode switch, or use `?mode=dream`. Browser Back/Forward restores the selected mode and Wake scroll position. Dream's camera and story share one reversible scroll timeline; the scene has no free zoom/orbit controls. A text reading mode provides the story without WebGL.
+Wake and Dream are independent component trees. A first-visit `[ ENTER ]` gesture opens the selected mode and can start the optional supplied soundtrack. Wake keeps Dream entry visible in both the header and the persistent bottom switch. The default Wake experience does not preload Three.js. Browser Back/Forward restores the selected mode and Wake scroll position. Dream's camera and story share one reversible scroll timeline; the scene has no free zoom/orbit controls. A text reading mode provides the story without WebGL.
 
 - `src/App.tsx`: mode selection and lazy Dream loading.
 - `src/NormalPortfolio.tsx`: standalone editorial HTML portfolio.
@@ -24,7 +24,7 @@ Wake and Dream are independent component trees. A first-visit `[ ENTER ]` gestur
 - `src/experience/cameraRoute.ts`: authored camera poses along the Dream route.
 - `src/experience/World.tsx`: procedural Dream environment and landmark silhouettes.
 - `src/experience/WorldCanvas.tsx`: persistent WebGL scene and scroll-synchronized camera.
-- `src/experience/ambientMusic.ts`: gesture-gated, optional Web Audio ambience.
+- `src/experience/ambientMusic.ts`: gesture-gated playback and persistent control for `public/audio/bgmusic.mp3`.
 - `src/wake.css`: editorial Wake design system and responsive layouts.
 - `src/interface`: accessible native dialogs and campaign tabs.
 - `AGENTS.md` and `CONTEXT.md`: instructions and current handoff state.
@@ -33,7 +33,7 @@ Geometry is original, generated in code. No remote model downloads or API keys a
 
 Dream mode fills the viewport while the visitor scrolls through a continuous chase-camera route. Concise story panels stay synchronized with the camera and reverse cleanly with scroll. Reading mode provides the story without WebGL. Repeated environment details use shared geometry where appropriate, pixel ratio is capped, and rendering pauses in hidden tabs. No performance score is claimed.
 
-The Wake sculpture and Dream corridor atmosphere are generated image assets. Dream's camera, route arches, chapter landmarks, skyline objects, and lighting remain live Three.js objects over the atmosphere plate; the distant traveler is part of that plate. GSoC and mentorship descriptions are applicant-supplied; volatile counts and unsubstantiated performance metrics are intentionally excluded. Personal details about the applicant's father are omitted until supplied by the applicant. See `docs/CONTENT-SOURCES.md`.
+The Wake sculpture and Dream corridor atmosphere are generated image assets. Dream's camera, route arches, chapter landmarks, skyline objects, and lighting remain live Three.js objects over the atmosphere plate; the distant traveler is part of that plate. The soundtrack was supplied by the applicant, who reports a Pixabay source; no track attribution data was included. GSoC and mentorship descriptions are applicant-supplied; volatile counts and unsubstantiated performance metrics are intentionally excluded. Personal details about the applicant's father are omitted until supplied by the applicant. See `docs/CONTENT-SOURCES.md`.
 
 ## Submission
 

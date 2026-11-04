@@ -26,7 +26,7 @@ This is a web portfolio for a hiring challenge. Visitors may use desktop or mobi
 
 - Normal/Wake and Dream are distinct experiences with a persistent way to switch between them.
 - Dream is intended to begin with an explicit user gesture, then use page scroll to drive a third-person camera and synchronized story beats. Free camera zoom/orbit is not part of the desired Dream interaction.
-- Ambient music is optional and can start only from a user gesture; provide a persistent sound control and keyboard/touch activation.
+- The applicant supplied `bgmusic.mp3` and reports a Pixabay source. Ambient music is optional and starts only from the Enter gesture; provide a persistent sound control and keyboard/touch activation. Track title/creator data was not supplied.
 - Keep project, profile, and achievement text available as accessible HTML.
 - Existing stack: React 19, TypeScript, Vite, Three.js/R3F, Drei, GSAP, Tailwind CSS. Normal should not load 3D dependencies unnecessarily.
 - Do not invent personal details, metrics, endorsements, project outcomes, or campaign results. Family-story content about Tarunya's father is undecided until supplied.
@@ -40,7 +40,7 @@ Product name: The World of Tarunya. The user rejected green for the portfolio an
 
 - Supplied profile, contact links, project repositories, education, GSoC/C2SI and open-source details are documented in `docs/CONTENT-SOURCES.md`.
 - Exact repository URLs and available project descriptions live in `src/data/portfolio.ts`.
-- Achievement counts and several performance claims are intentionally omitted until supported. The family chapter and soundtrack asset are not supplied; use no invented biography or unlicensed track.
+- Achievement counts and several performance claims are intentionally omitted until supported. Family details are not supplied; do not invent a father chapter. Use only the applicant-supplied soundtrack asset.
 
 ## Product Principles
 

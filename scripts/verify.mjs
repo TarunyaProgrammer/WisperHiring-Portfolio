@@ -59,6 +59,7 @@ try {
   assert(!canvasSource.includes("OrbitControls"));
   assert(existsSync("public/images/wake-sculpture.png"));
   assert(existsSync("public/images/dream-environment.jpg"));
+  assert(existsSync("public/audio/bgmusic.mp3"));
 
   const index = readFileSync("dist/index.html", "utf8");
   const normalEntry = readdirSync("dist/assets").find(
@@ -71,6 +72,7 @@ try {
     assert(existsSync(`dist${path[1]}`), `Missing built asset ${path[1]}`);
   assert(existsSync("dist/images/wake-sculpture.png"));
   assert(existsSync("dist/images/dream-environment.jpg"));
+  assert(existsSync("dist/audio/bgmusic.mp3"));
   assert(existsSync("dist/favicon.svg"));
 
   console.log(

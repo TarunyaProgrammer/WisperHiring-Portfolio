@@ -128,7 +128,7 @@ input:focus-visible {
   inset: 0;
   content: "";
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 52%, #18131e70, transparent 46%);
+  background: linear-gradient(125deg, #100c15 0%, #07070a 42%, #0f0b14 100%);
 }
 
 .entry-gate-main {

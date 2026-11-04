@@ -10,26 +10,27 @@ Do not invent metrics, testimonials, campaign results, or personal history. The 
 
 ## Current implementation
 
-- `App.tsx` begins at a black `[ ENTER ]` gate. The user gesture opens Wake or Dream and can start optional original Web Audio ambience. Sound can be disabled before or after entry.
-- Wake (`NormalPortfolio.tsx` and `wake.css`) is a responsive editorial page with a quiet grid, large typography, transparent sculptural artwork, restrained pointer-follow violet light and tilt, project and proof narratives, Signal Lab proposal, contact links, and a persistent Wake/Dream switch.
+- `App.tsx` begins at a black `[ ENTER ]` gate. The user gesture opens Wake or Dream and can start optional looping playback of `public/audio/bgmusic.mp3`. Sound can be disabled before or after entry.
+- Wake (`NormalPortfolio.tsx` and `wake.css`) is a responsive editorial page with a quiet grid, large typography, transparent sculptural artwork, cursor-follow violet facet linework and a deliberate tilt, a gentle in-view sculpture animation, project and proof narratives, Signal Lab proposal, contact links, a visible Dream CTA in the header, and the persistent bottom mode switch.
 - Dream (`DreamExperience.tsx`, `dream.css`) follows seven story beats. One fixed Canvas, authored closed camera route and HTML chapter sequence track one scroll timeline. GSAP ScrollTrigger scrubs in both directions. The traveler is part of the atmospheric art plate; there are no OrbitControls or manual zoom controls. The ending returns visually to the opening pose with a particle flourish and deliberate replay control.
 - Dream remains lazy-loaded; Wake does not import the Three.js renderer. A reading mode presents the full story without WebGL. Reduced motion, skip links, labeled controls, responsive layouts, and a WebGL error fallback are present.
 - Four fictionalized project summaries use the exact supplied repository URLs. Their architecture and learning copy is narrative explanation, not a claim of measured results.
 - `DESIGN.md`, `PRODUCT.md`, `AGENTS.md`, `docs/CONTENT-SOURCES.md` and `docs/QA.md` describe the accepted design and project truth.
-- Generated assets: `public/images/wake-sculpture.png` is used in Wake; `public/images/dream-environment.jpg` is a full-bleed Dream atmosphere plate behind the live transparent WebGL camera route, arch overlays, and desktop landmarks. The original design reference stays in `docs/art-direction/`.
+- Assets: `public/images/wake-sculpture.png` is used in Wake; `public/images/dream-environment.jpg` is a full-bleed Dream atmosphere plate behind the live transparent WebGL camera route, arch overlays, and desktop landmarks; `public/audio/bgmusic.mp3` is applicant supplied. The original design reference stays in `docs/art-direction/`.
 
 ## Verification completed this session
 
 - `npm run build`: passes TypeScript and Vite production build. Three.js is split into its own lazy vendor chunk (about 181 KB gzip); React Three Fiber and GSAP are split separately.
 - `npm run verify`: passes rendered Wake, project links, chapter order, closed Dream route, scroll timeline wiring, and production asset checks.
 - `git diff --check`: passes.
-- Impeccable scan: no critical findings; advisory font-family and one Dream CSS layout-transition warning remain.
+- Current Impeccable scan: no critical findings; advisory font-family warnings remain.
+- Local Chrome verified the cursor-following SVG facet, hero sculpture animation, visible Dream buttons, reduced-motion behavior, 390px layout, supplied MP3 request after Enter (HTTP 206), sound toggle, and navigation into Dream. No page errors.
 - Headless Chrome on the local production preview opened the black Enter gate, Wake, and Dream. Chapter navigation advanced, reversed with scroll, and rendered without page errors. At 390px, Dream had no horizontal overflow. The rendered environment still benefits from visual QA on a physical mobile device and lower-powered hardware.
 - No public deployment was created or checked, by user instruction.
 
 ## Remaining work
 
-- Recheck reading mode, audio and failure paths if changing their code; verify mobile graphics and audio on a physical device.
+- Verify audio level and Dream graphics on a physical device.
 - Independently inspect a public deployed build only if the user later authorizes a hosting destination.
 - Re-check applicant-owned source links and claims before public release.
 

@@ -7,8 +7,8 @@ The portfolio is a two-part experience: **Wake** is an editorial portfolio with 
 - **Composition:** spacious editorial grid; sparse persistent navigation; oversized typography; one custom sculptural focal image; selected project evidence arranged in varied, open layouts rather than repeated cards.
 - **Palette:** warm paper `#F4F0E8`, near-black plum `#241F2D`, quiet gray `#716474`, restrained amethyst/violet refracted in the sculpture, warm copper as a small signal accent. Green is not a portfolio accent.
 - **Typography:** variable sans for navigation, body, and utility; Instrument Serif for occasional editorial contrast. Headings use confident scale and short lines. Small metadata stays legible and sparse.
-- **Pointer interaction:** cursor position tilts the sculpture slightly and moves a low-opacity violet light field; no sudden color wash. Touch uses slow, reduced ambient movement.
-- **Navigation:** fixed/global Wake ↔ Dream switch remains available at all page positions. Sound control remains reachable; returning from Dream restores the previous Wake scroll position.
+- **Pointer interaction:** cursor position moves a crisp, freeform violet facet drawing and tilts the sculpture. The crystal drifts only while its hero is visible; reduced-motion preferences stop that loop. No circular gradient, glow dot, or pulsing CTA.
+- **Navigation:** Dream entry appears in the header and persistent bottom switch, so the alternate experience is obvious on desktop and mobile. Sound control remains reachable; returning from Dream restores the previous Wake scroll position.
 
 ## Dream
 

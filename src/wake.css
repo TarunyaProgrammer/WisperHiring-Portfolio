@@ -33,11 +33,46 @@
 
 .wake-pointer-light {
   position: fixed;
-  z-index: -1;
+  z-index: 0;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(32rem circle at var(--wake-x, 50vw) var(--wake-y, 50vh), #8e75ba19 0%, #8e75ba0b 38%, transparent 72%);
-  transition: opacity 300ms ease;
+}
+
+.wake-cursor-form {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(42vw, 570px);
+  min-width: 390px;
+  overflow: visible;
+  transform: translate3d(var(--wake-x, 50vw), var(--wake-y, 50vh), 0) translate(-50%, -50%) rotate(var(--wake-cursor-rotation, 0deg));
+  opacity: 0.76;
+  mix-blend-mode: multiply;
+  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wake-cursor-outline {
+  fill: #8670ad18;
+  stroke: #684c8f;
+  stroke-opacity: 0.48;
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.wake-cursor-facet {
+  fill: none;
+  stroke: #705894;
+  stroke-opacity: 0.42;
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+.wake-cursor-warm-edge {
+  fill: none;
+  stroke: #a67668;
+  stroke-opacity: 0.34;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .wake-header {
@@ -48,7 +83,7 @@
   width: 100%;
   min-height: 88px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto auto auto;
   align-items: center;
   gap: 28px;
   padding: 0 max(5.5vw, env(safe-area-inset-left));
@@ -63,6 +98,34 @@
   font-size: 11px;
   letter-spacing: 0.025em;
 }
+
+.wake-header-dream {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 15px;
+  border: 1px solid #59466c;
+  background: #4e3d61;
+  color: #fbf7f1 !important;
+  font-size: 10px;
+  font-weight: 570;
+  letter-spacing: 0.02em;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.wake-header-dream:hover {
+  background: #644d7c;
+}
+
+.wake-header-dream:focus-visible,
+.wake-sound:focus-visible,
+.wake-mode-switch button:focus-visible {
+  outline: 2px solid #8e6db2;
+  outline-offset: 3px;
+}
+
 
 .wake-wordmark {
   justify-self: start;
@@ -181,11 +244,21 @@
   object-fit: contain;
   mix-blend-mode: multiply;
   opacity: 0.88;
+  transform-origin: 50% 48%;
 }
 
 .wake-hero:has(:focus-visible) .wake-sculpture,
-.wake-hero:hover .wake-sculpture {
+.wake-hero.is-active .wake-sculpture {
   filter: saturate(1.06) hue-rotate(3deg);
+}
+
+.wake-hero.is-active .wake-sculpture img {
+  animation: wake-sculpture-drift 8s ease-in-out infinite alternate;
+}
+
+@keyframes wake-sculpture-drift {
+  from { transform: translate3d(0, 9px, 0) rotate(-1.2deg) scale(0.985); }
+  to { transform: translate3d(0, -12px, 0) rotate(1.4deg) scale(1.015); }
 }
 
 .wake-hero-copy {
@@ -800,13 +873,22 @@
 }
 
 .wake-mode-switch > button {
-  background: transparent;
+  min-width: 164px;
+  background: #57446a;
+  color: #fbf7f1;
   transition: background 180ms ease, color 180ms ease;
 }
 
 .wake-mode-switch > button:hover {
-  background: #e8e0eb;
-  color: #5d477b;
+  background: #694f80;
+  color: #fff;
+}
+
+.wake-mode-hint {
+  color: #e3d3ee;
+  font-size: 9px;
+  font-weight: 430;
+  white-space: nowrap;
 }
 
 .wake-project[data-reveal],
@@ -831,7 +913,7 @@
 
 @media (max-width: 900px) {
   .wake-header {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
   .wake-header nav {
     display: none;
@@ -860,13 +942,30 @@
 @media (max-width: 600px) {
   .wake-header {
     min-height: 72px;
+    gap: 8px;
     padding-inline: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
   }
   .wake-wordmark {
-    font-size: 10px;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .wake-header-dream {
+    min-height: 38px;
+    gap: 6px;
+    padding-inline: 9px;
+    font-size: 9px;
   }
   .wake-sound {
-    font-size: 10px;
+    min-width: 38px;
+    justify-content: center;
+  }
+  .wake-sound span {
+    display: none;
+  }
+  .wake-cursor-form {
+    width: 460px;
+    min-width: 0;
   }
   .wake-hero {
     min-height: 100svh;
@@ -965,9 +1064,16 @@
   }
   .wake-mode-switch > span,
   .wake-mode-switch > button {
-    min-width: 98px;
-    min-height: 42px;
-    padding-inline: 14px;
+    min-width: 78px;
+    min-height: 43px;
+    padding-inline: 12px;
+    font-size: 10px;
+  }
+  .wake-mode-switch > button {
+    min-width: 179px;
+  }
+  .wake-mode-hint {
+    font-size: 8px;
   }
   .wake-page .campaign-tabs {
     flex-wrap: wrap;
@@ -981,10 +1087,19 @@
   .wake-sculpture {
     transition: none;
   }
+  .wake-hero.is-active .wake-sculpture img {
+    animation: none;
+  }
   .wake-page .will-reveal {
     opacity: 1;
     transform: none;
   }
+  .wake-pointer-light {
+    display: none;
+  }
+}
+
+@media (hover: none) {
   .wake-pointer-light {
     display: none;
   }
