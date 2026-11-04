@@ -36,3 +36,8 @@ Production build, desktop/mobile browser QA, modal/navigation/campaign controls,
 - `scripts/verify.mjs` passes SSR checks for Normal, project links/data, navigation IDs, campaign stages/metrics, finite camera waypoints/FOV, 3D lazy boundary and production assets. This is NOT browser interaction QA.
 - Social PNG and favicon exist. Canonical and OG origin point at registered expected Site; update if deployment destination changes.
 - Automatic approval review also rejected escalated Sites source sync: destination-specific upload authorization required. Asked user explicit authorization through async question. Do not retry until answer. GitHub pushes remain authorized.
+
+## Latest checked state
+Production build and `npm run verify` passed after formatting and atmospheric update. Committed milestone 2 at 90c7c3d. Initial push failed with GitHub internal server error; retry in progress. Core implementation is present, but browser interaction/visual checks and public hosting are not completed, so do not claim a verified percentage or submission readiness.
+
+Normal bundle: 76.46 KB gzip; Dream: 49.04 KB gzip; lazy World: 245.37 KB gzip. These are build output sizes, not performance benchmark scores. `npm run verify` must follow a current production build.

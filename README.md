@@ -8,11 +8,17 @@ An original, scroll-driven miniature world portfolio. React 19, TypeScript, Vite
 npm install
 npm run dev
 npm run build
+npm run verify
 npm run preview
 ```
 
 ## Architecture
 
+Normal and Dream are independent component trees. The default Normal experience does not preload Three.js. Enter Dream explicitly, or use `?mode=dream`. Browser Back/Forward restores the selected mode. Reading mode is a separate accessibility option within Dream.
+
+- `src/App.tsx`: mode selection and lazy Dream loading.
+- `src/NormalPortfolio.tsx`: standalone editorial HTML portfolio.
+- `src/DreamExperience.tsx`: cinematic journey and district interface.
 - `src/data/portfolio.ts`: editable profile, projects, achievements, chapters and campaign.
 - `src/experience/controller.tsx`: single DOM scroll source; mutable progress and discrete UI state.
 - `src/experience/CameraRig.tsx`: authored position, target and FOV keyframes.
