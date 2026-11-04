@@ -1,6 +1,7 @@
 import { Component, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
+import { Sky } from "@react-three/drei";
 import { useExperience } from "./controller";
 import { World } from "./World";
 import { CameraRig } from "./CameraRig";
@@ -74,8 +75,8 @@ export function WorldCanvas({
             );
           }}
         >
-          <color attach="background" args={["#344f57"]} />
-          <fog attach="fog" args={["#344f57", 40, 105]} />
+          <Sky distance={450000} sunPosition={[-24, 9, -18]} turbidity={8} rayleigh={1.8} mieCoefficient={0.005} mieDirectionalG={0.82} />
+          <fog attach="fog" args={["#596f6d", 40, 105]} />
           <ambientLight intensity={0.6} />
           <hemisphereLight args={["#ffe1b1", "#536f6c", 1.6]} />
           <directionalLight

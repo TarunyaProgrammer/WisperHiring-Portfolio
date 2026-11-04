@@ -43,3 +43,8 @@ Production build and `npm run verify` passed after formatting and atmospheric up
 Normal bundle: 76.46 KB gzip; Dream: 49.04 KB gzip; lazy World: 245.37 KB gzip. These are build output sizes, not performance benchmark scores. `npm run verify` must follow a current production build.
 
 Resolved: milestone 90c7c3d successfully pushed to origin/main after retry. Handoff documentation committed at 68aa641; final context note is being pushed with it. Hosting permission remains pending. Implementation goal remains active; no public deployment or browser QA success is claimed.
+
+## World art direction update
+World.tsx now uses a stronger irregular island contour, an exposed low-poly cliff band, stepped central plaza, a curved canal with pale banks, flat paved paths, two canal causeways, grouped shoreline rocks and five nearby wooded islets. Tree crowns are varied by instance and kept clear of landmark footprints. The three-bay Workshop now has pitched copper gables, timber facade divisions and warm windows; the Proof tower has a tapered lighthouse profile; Signal has a beacon. WorldCanvas uses a physical dusk sky and warm hemisphere/sun lighting. Existing procedural distant mountain ring remains. No browser screenshot QA was possible.
+
+Verified after this scene pass: `npm run build` and `npm run verify` pass. Remaining known limitations: world chunk ~248.5 KB gzip warning; no visual/browser QA. GitHub docs pushes intermittently return server errors; user authorized milestone pushes.

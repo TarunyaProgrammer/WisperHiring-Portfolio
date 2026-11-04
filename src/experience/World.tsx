@@ -1,7 +1,10 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { Html, RoundedBox } from "@react-three/drei";
+import { Html } from "@react-three/drei";
 import {
   CatmullRomCurve3,
+  BufferGeometry,
+  Color,
+  Float32BufferAttribute,
   DoubleSide,
   InstancedMesh,
   Object3D,
@@ -17,6 +20,12 @@ const colors = {
   dark: "#344f43",
   water: "#9bbdc0",
   sand: "#d7c7a7",
+  shoreline: "#d6c19d",
+  coast: "#896e52",
+  road: "#ded4bd",
+  pathEdge: "#b5a78b",
+  canal: "#426c75",
+  timber: "#526051",
 };
 type Vec = [number, number, number];
 function Block({
@@ -45,20 +54,45 @@ function Block({
 function Path({
   points,
   width = 0.16,
-  color = "#ddd0b8",
+  color = colors.road,
+  edge = false,
 }: {
   points: Vec[];
   width?: number;
   color?: string;
+  edge?: boolean;
 }) {
-  const curve = useMemo(
-    () => new CatmullRomCurve3(points.map((p) => new Vector3(...p))),
-    [points],
-  );
+  const geometry = useMemo(() => {
+    const curve = new CatmullRomCurve3(points.map((p) => new Vector3(...p)));
+    const positions: number[] = [];
+    const indices: number[] = [];
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const point = curve.getPoint(t);
+      const tangent = curve.getTangent(t).normalize();
+      const nx = -tangent.z;
+      const nz = tangent.x;
+      const half = width * (edge ? 0.72 : 0.5);
+      const y = point.y + (edge ? 0.015 : 0.025);
+      positions.push(
+        point.x + nx * half, y, point.z + nz * half,
+        point.x - nx * half, y, point.z - nz * half,
+      );
+      if (i < steps) {
+        const a = i * 2;
+        indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+      }
+    }
+    const result = new BufferGeometry();
+    result.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    result.setIndex(indices);
+    result.computeVertexNormals();
+    return result;
+  }, [points, width, edge]);
   return (
-    <mesh receiveShadow>
-      <tubeGeometry args={[curve, 64, width, 8, false]} />
-      <meshStandardMaterial color={color} roughness={1} />
+    <mesh geometry={geometry} receiveShadow>
+      <meshStandardMaterial color={color} roughness={edge ? 0.96 : 1} side={DoubleSide} />
     </mesh>
   );
 }
@@ -113,38 +147,50 @@ function Trees() {
   const trunks = useRef<InstancedMesh>(null),
     leaves = useRef<InstancedMesh>(null);
   const positions = useMemo(
-    () =>
-      Array.from({ length: 64 }, (_, i) => {
-        const a = i * 2.39996,
-          r = 5 + Math.sin(i * 4.8) * 2.5;
-        return [Math.cos(a) * r * 1.45, Math.sin(a) * r];
-      }),
+    () => {
+      const groves: number[][] = [];
+      for (let i = 0; groves.length < 58; i++) {
+        const a = i * 2.39996;
+        const r = 6.2 + (i % 4) * 0.72 + Math.sin(i * 4.8) * 0.24;
+        const candidate = [Math.cos(a) * r * 1.1, Math.sin(a) * r * 0.84];
+        const clearOfLandmarks = [
+          [-6, 4], [5, 3.8], [-5, -4], [5, -4.7], [0.5, -6.2], [-1, 6.1],
+        ].every(([x,z]) => Math.hypot(candidate[0]-x,candidate[1]-z)>2.15);
+        if (clearOfLandmarks && r < 8.7) groves.push(candidate);
+        if (i > 700) break;
+      }
+      return groves;
+    },
     [],
   );
   useLayoutEffect(() => {
     const dummy = new Object3D();
-    positions.forEach(([x, z], i) => {
+      positions.forEach(([x, z], i) => {
       const h = 0.9 + (Math.sin(i * 8.2) + 1) * 0.45;
       dummy.position.set(x, 0.4, z);
       dummy.scale.set(0.1, 0.8, 0.1);
       dummy.updateMatrix();
       trunks.current!.setMatrixAt(i, dummy.matrix);
       dummy.position.set(x, h * 0.65 + 0.6, z);
-      dummy.scale.set(0.55, h, 0.55);
-      dummy.rotation.y = i;
+        const fullness = 0.42 + (i % 5) * 0.055;
+        dummy.scale.set(fullness, h, fullness);
+        dummy.rotation.set(Math.sin(i*2)*.12, i*.73, Math.cos(i*3)*.1);
       dummy.updateMatrix();
       leaves.current!.setMatrixAt(i, dummy.matrix);
+        const tint = new Color().setHSL(0.25 + (i%6)*.008, .2 + (i%3)*.025, .38 + (i%4)*.025);
+        leaves.current!.setColorAt(i,tint);
     });
     trunks.current!.instanceMatrix.needsUpdate = true;
     leaves.current!.instanceMatrix.needsUpdate = true;
+    if (leaves.current!.instanceColor) leaves.current!.instanceColor.needsUpdate = true;
   }, [positions]);
   return (
     <>
-      <instancedMesh ref={trunks} args={[undefined, undefined, 64]} castShadow>
+      <instancedMesh ref={trunks} args={[undefined, undefined, 58]} castShadow>
         <cylinderGeometry args={[0.7, 1, 1, 5]} />
         <meshStandardMaterial color="#73644b" />
       </instancedMesh>
-      <instancedMesh ref={leaves} args={[undefined, undefined, 64]} castShadow>
+      <instancedMesh ref={leaves} args={[undefined, undefined, 58]} castShadow>
         <icosahedronGeometry args={[1, 1]} />
         <meshStandardMaterial color="#64806a" flatShading />
       </instancedMesh>
@@ -156,9 +202,9 @@ function Terrain() {
     const s = new Shape();
     for (let i = 0; i <= 48; i++) {
       const a = (i / 48) * Math.PI * 2,
-        r = 1 + 0.055 * Math.sin(a * 5) + 0.025 * Math.cos(a * 9);
-      const x = Math.cos(a) * 11 * r,
-        y = Math.sin(a) * 8.3 * r;
+        r = 1 + 0.09 * Math.sin(a * 3 + 0.4) + 0.055 * Math.cos(a * 7) + 0.025 * Math.sin(a * 13);
+      const x = Math.cos(a) * 11 * r + 0.45,
+        y = Math.sin(a) * 8.15 * r - 0.2;
       if (!i) s.moveTo(x, y);
       else s.lineTo(x, y);
     }
@@ -169,7 +215,7 @@ function Terrain() {
     <>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -1.75, 0]}
+        position={[0, -1.47, 0]}
         receiveShadow
         castShadow
       >
@@ -177,7 +223,7 @@ function Terrain() {
           args={[
             shape,
             {
-              depth: 1.5,
+              depth: 2.5,
               bevelEnabled: true,
               bevelSegments: 3,
               steps: 1,
@@ -186,16 +232,26 @@ function Terrain() {
             },
           ]}
         />
-        <meshStandardMaterial color={colors.sand} roughness={1} />
+        <meshStandardMaterial color={colors.coast} roughness={1} flatShading />
       </mesh>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0.05, 0]}
+        position={[0, -0.06, 0]}
         receiveShadow
       >
         <shapeGeometry args={[shape]} />
-        <meshStandardMaterial color="#a5ad87" side={DoubleSide} />
+        <meshStandardMaterial color="#839078" side={DoubleSide} roughness={1} />
       </mesh>
+      {[
+        { radius: 2.8, y: -0.06, height: 0.32 },
+        { radius: 2.18, y: 0.12, height: 0.2 },
+        { radius: 1.58, y: 0.34, height: 0.24 },
+      ].map(({ radius, y, height }, i) => (
+        <mesh key={radius} position={[0, y, 0]} receiveShadow castShadow>
+          <cylinderGeometry args={[radius - 0.16, radius, height, 48]} />
+          <meshStandardMaterial color={i===2 ? "#77826b" : "#746e56"} roughness={1}/>
+        </mesh>
+      ))}
       <mesh
         position={[0, -2.05, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -204,18 +260,7 @@ function Terrain() {
         <planeGeometry args={[200, 200]} />
         <shadowMaterial transparent opacity={0.12} />
       </mesh>
-      <mesh position={[1, 0.12, 0]} rotation={[-Math.PI / 2, 0, -0.15]}>
-        <circleGeometry args={[5.6, 64]} />
-        <meshStandardMaterial color={colors.water} roughness={0.36} />
-      </mesh>
-      <mesh
-        position={[1, 0.13, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[1, 0.82, 1]}
-      >
-        <ringGeometry args={[5.48, 5.63, 64]} />
-        <meshStandardMaterial color="#d4ded1" />
-      </mesh>
+      <group>{[[-7,-.65,-6.15,1.2],[-4,-.7,-7.35,.75],[3,-.75,-7.4,1.15],[8,-.7,-5.65,.85],[10,-.55,-2.7,.6],[9,-.65,4.7,.95],[4,-.7,7.35,.7],[-7,-.65,5.2,1.15],[-10,-.5,2,.65]].map(([x,y,z,size],i)=><mesh key={i} position={[x,y,z]} rotation={[.1,i*.71,.16]} scale={[size*1.4,size*.75,size]} castShadow><icosahedronGeometry args={[1,1]}/><meshStandardMaterial color={i%3===0?colors.shoreline:colors.coast} flatShading/></mesh>)}</group>
     </>
   );
 }
@@ -228,10 +273,11 @@ function Bridge({
 }) {
   return (
     <group position={position} rotation={[0, rotation, 0]}>
-      <Block size={[4.3, 0.25, 1.3]} position={[0, 0.5, 0]} />
+      <Block size={[4.3, 0.25, 1.3]} position={[0, 0.5, 0]} color="#c1a984" />
+      <Block size={[4.1, 0.055, 1.12]} position={[0,.655,0]} color="#ddd2ba" />
       {[-0.65, 0.65].map((z) => (
         <group key={z}>
-          <Block size={[4.3, 0.18, 0.12]} position={[0, 0.95, z]} />
+          <Block size={[4.3, 0.14, 0.16]} position={[0, 0.95, z]} color={colors.cream} />
           {[-1.8, -0.9, 0, 0.9, 1.8].map((x) => (
             <Block key={x} size={[0.1, 0.55, 0.1]} position={[x, 0.7, z]} />
           ))}
@@ -242,7 +288,7 @@ function Bridge({
           key={x}
           size={[0.35, 0.9, 1.1]}
           position={[x, 0, 0]}
-          color="#b8aa8b"
+          color="#9f9279"
         />
       ))}
     </group>
@@ -251,41 +297,30 @@ function Bridge({
 function Workshop() {
   return (
     <group>
-      <RoundedBox
-        args={[3.4, 1.6, 2.1]}
-        radius={0.05}
-        position={[0, 0.85, 0]}
-        castShadow
-        receiveShadow
-      >
-        <meshStandardMaterial color={colors.cream} />
-      </RoundedBox>
-      {[-1.1, 0, 1.1].map((x) => (
+      <Block position={[0,0.1,0]} size={[4.9,.24,3.6]} color={colors.pathEdge}/>
+      {[-1.42, 0, 1.42].map((x,i) => (
         <group key={x}>
-          <mesh
-            position={[x, 1.85, 0]}
-            rotation={[0, 0, Math.PI / 4]}
-            castShadow
-          >
-            <boxGeometry args={[0.8, 0.8, 2.3]} />
-            <meshStandardMaterial color={colors.roof} />
-          </mesh>
-          <Block
-            position={[x, 0.9, 1.06]}
-            size={[0.65, 0.75, 0.04]}
-            color="#607f7a"
-          />
-          <Block position={[x, 1.05, 1.1]} size={[0.05, 1, 0.04]} />
+          <Block position={[x,.87,0]} size={[1.27,1.38,1.42]} color={i===1?'#d8cfb9':colors.cream}/>
+          <GableRoof position={[x,1.56,0]} width={1.48} height={.78} depth={1.58}/>
+          {[-.38,.38].map(dx=><mesh key={dx} position={[x+dx,.89,.716]}><planeGeometry args={[.28,.46]}/><meshStandardMaterial color="#e1bc80" emissive="#c88951" emissiveIntensity={.34}/></mesh>)}
+          <Block position={[x,.83,.73]} size={[.045,.98,.055]} color={colors.timber}/>
+          <Block position={[x,.26,0]} size={[1.34,.12,1.48]} color={colors.dark}/>
         </group>
       ))}
       <Block
-        position={[1.5, 2.25, -0.6]}
-        size={[0.38, 2, 0.4]}
+        position={[1.55, 2.27, -0.35]}
+        size={[0.32, 1.05, 0.34]}
         color="#ac7457"
       />
-      <Block position={[0, 0.15, 1.7]} size={[4, 0.25, 1.2]} color="#c4b69a" />
+      <Block position={[0,.27,1.25]} size={[3.7,.12,.75]} color={colors.shoreline}/>
+      <Block position={[-1.5,.66,.78]} size={[.12,.8,.12]} color={colors.timber}/>
+      <Block position={[1.5,.66,.78]} size={[.12,.8,.12]} color={colors.timber}/>
     </group>
   );
+}
+function GableRoof({position,width,height,depth}:{position:Vec;width:number;height:number;depth:number}) {
+  const profile=useMemo(()=>{const s=new Shape();s.moveTo(-width/2,-.06);s.lineTo(0,height);s.lineTo(width/2,-.06);s.closePath();return s},[width,height]);
+  return <mesh position={[position[0],position[1],position[2]-depth/2]} castShadow receiveShadow><extrudeGeometry args={[profile,{depth,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.035,bevelThickness:.035}]}/><meshStandardMaterial color={colors.roof} roughness={.9} flatShading/></mesh>
 }
 function Observatory() {
   return (
@@ -317,8 +352,9 @@ function Observatory() {
 function Tower() {
   return (
     <group>
-      <Block size={[2.2, 0.35, 2.2]} />
-      <Block size={[1.2, 4.9, 1.2]} position={[0, 2.5, 0]} />
+      <Block size={[3.5,.35,3.5]} color={colors.shoreline} position={[0,.1,0]}/>
+      <mesh position={[0,.3,0]} castShadow receiveShadow><cylinderGeometry args={[.9,1.2,5.2,10]}/><meshStandardMaterial color={colors.cream} flatShading/></mesh>
+      <mesh position={[0,1.2,0]}><cylinderGeometry args={[.93,.93,.1,10]}/><meshStandardMaterial color={colors.timber}/></mesh>
       {[1.1, 2.4, 3.7, 5].map((y) => (
         <Block
           key={y}
@@ -334,7 +370,7 @@ function Tower() {
       />
       <mesh position={[0, 6.3, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
         <coneGeometry args={[1.4, 0.65, 4]} />
-        <meshStandardMaterial color={colors.roof} />
+        <meshStandardMaterial color={colors.dark} />
       </mesh>
       <Block
         position={[0, 6.9, 0]}
@@ -347,8 +383,9 @@ function Tower() {
 function Signal() {
   return (
     <group>
-      <Block size={[3.2, 1.35, 2.2]} position={[0, 0.75, 0]} color="#ce8056" />
-      <Block size={[3.5, 0.18, 2.5]} position={[0, 1.5, 0]} />
+      <Block size={[3.7,.28,3.1]} position={[0,.2,0]} color={colors.shoreline}/>
+      <Block size={[3.2,1.35,2.2]} position={[0,.92,0]} color="#bd7555" />
+      <Block size={[3.5,.18,2.5]} position={[0,1.62,0]} color={colors.cream}/>
       {[-1, 0, 1].map((x) => (
         <Block
           key={x}
@@ -368,6 +405,7 @@ function Signal() {
             <meshStandardMaterial color={colors.cream} />
           </mesh>
         ))}
+        <mesh position={[0,2.78,0]}><icosahedronGeometry args={[.2,1]}/><meshStandardMaterial color="#edc17e" emissive="#e1a75b" emissiveIntensity={1.5}/></mesh>
       </group>
     </group>
   );
@@ -423,6 +461,36 @@ function DreamLandscape() {
           </mesh>
         );
       })}
+      {[
+        [-14, -1.8, 7, 1.1],
+        [14, -1.8, 5, 0.85],
+        [-3, -1.8, 14, 0.9],
+        [3, -1.8, -14, 1.15],
+        [-14, -1.8, -9, 0.72],
+      ].map(([x, y, z, scale], i) => (
+        <group key={i} position={[x, y, z]} scale={scale}>
+          <mesh scale={[2.6, 1.5, 1.9]} castShadow receiveShadow>
+            <dodecahedronGeometry args={[1, 1]} />
+            <meshStandardMaterial color="#695e4c" flatShading />
+          </mesh>
+          <mesh position={[0, 0.66, 0]} scale={[2.15, 0.3, 1.5]} receiveShadow>
+            <sphereGeometry args={[1, 10, 6]} />
+            <meshStandardMaterial color="#74836b" flatShading />
+          </mesh>
+          {[-0.65, 0.5].map((tx, j) => (
+            <group key={j} position={[tx, 0.9, (j - 0.5) * 0.65]}>
+              <mesh position={[0, 0.46, 0]} castShadow>
+                <cylinderGeometry args={[0.055, 0.09, 0.92, 5]} />
+                <meshStandardMaterial color="#6c6049" />
+              </mesh>
+              <mesh position={[0, 1.13, 0]} castShadow>
+                <coneGeometry args={[0.49, 1.12, 6]} />
+                <meshStandardMaterial color={j ? "#66795f" : "#7d8c69"} flatShading />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
       {Array.from({ length: 12 }, (_, i) => {
         const a = (i / 12) * Math.PI * 2;
         return (
@@ -479,33 +547,13 @@ export function World({
       <Terrain />
       <Trees />
       <DreamLandscape />
-      <Path
-        points={[
-          [-8, 0.2, 4],
-          [-6, 0.2, 6],
-          [0, 0.2, 6.2],
-          [6, 0.2, 5],
-          [8, 0.2, 1],
-          [8, 0.2, -3],
-          [5, 0.2, -6],
-          [-1, 0.2, -6.8],
-          [-6, 0.2, -5],
-          [-8, 0.2, 0],
-          [-8, 0.2, 4],
-        ]}
-        width={0.34}
-      />
-      <Path
-        points={[
-          [-6, 0.22, 5],
-          [-4, 0.22, 3],
-          [-2, 0.22, 3],
-          [-1, 0.22, 5],
-        ]}
-        width={0.2}
-      />
-      <Bridge position={[-3, 0.1, 1.5]} rotation={-0.3} />
-      <Bridge position={[4, 0.1, -2]} rotation={0.5} />
+      <Path points={[[-8,.22,4],[-6.3,.22,4.45],[-4.4,.22,3.65],[-2.2,.22,2.25],[0,.22,.5],[2.3,.22,-.65],[4.4,.22,-.4],[6.3,.22,1.1],[8,.22,1],[8,.22,-3],[5,.22,-6],[-1,.22,-6.8],[-6,.22,-5],[-8,.22,0],[-8,.22,4]]} width={.48} edge />
+      <Path points={[[-7.5,.23,-2],[-6.5,.23,-.2],[-5,.23,1.4],[-3,.23,2],[0,.23,.5],[2,.23,-1.2],[3.8,.23,-3],[5,.23,-4.7]]} width={.35} edge />
+      <Path points={[[-1,.24,5.3],[.4,.24,3.6],[1,.24,1.5],[0,.24,.5],[-1.6,.24,-1],[-2.7,.24,-3.1],[-3.8,.24,-5.5]]} width={.32} edge />
+      <Path points={[[-4,.045,-9],[-3.4,.045,-6],[-2.8,.045,-3.6],[-2.1,.045,-1.4],[-.1,.045,.35],[2.2,.045,1.55],[4.8,.045,2.5],[7.4,.045,3],[10,.045,4.2]]} width={1.42} color={colors.pathEdge}/>
+      <Path points={[[-4,.065,-9],[-3.4,.065,-6],[-2.8,.065,-3.6],[-2.1,.065,-1.4],[-.1,.065,.35],[2.2,.065,1.55],[4.8,.065,2.5],[7.4,.065,3],[10,.065,4.2]]} width={1.12} color={colors.canal}/>
+      <Bridge position={[-2.8, .1, -3.6]} rotation={-.12} />
+      <Bridge position={[.1, .1, .5]} rotation={.88} />
       <group position={[-6, 0, 4]} onClick={click(() => go(1))}>
         <Arch rotation={-0.2} />
         <Arch position={[0, 0, -1.3]} rotation={-0.2} scale={0.85} />
@@ -584,18 +632,7 @@ export function World({
         <Arch />
         <Block position={[0, 0.2, 1]} size={[3, 0.25, 2.5]} />
       </group>
-      {Array.from({ length: 7 }, (_, i) => (
-        <mesh
-          key={i}
-          position={[-9 + Math.sin(i) * 0.4, -0.4, i * 1.4 - 4]}
-          scale={[0.8, 1.1, 0.8]}
-          castShadow
-        >
-          <icosahedronGeometry args={[1, 0]} />
-          <meshStandardMaterial color="#b9ae94" flatShading />
-        </mesh>
-      ))}
-      <group position={[0, 0.15, 0]}>
+      <group position={[0, 0.46, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1.4, 48]} />
           <meshStandardMaterial color="#e1d6bd" />

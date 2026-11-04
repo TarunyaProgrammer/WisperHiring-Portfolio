@@ -3,6 +3,8 @@
 2026-11-04, current milestone: separate Normal and Dream modes.
 
 ## Passed
+- The procedural island world compiles with sculpted shoreline variation, layered mesa, defined coastal rocks and islets, a winding river, two causeways, and flat paved routes.
+- Four landmarks now share stone, dark timber and copper roof materials while keeping distinct silhouettes.
 - TypeScript strict compilation and Vite production build.
 - Normal server rendering; all four project titles and real repository URLs.
 - Normal navigation targets and campaign stage/measurement data.
