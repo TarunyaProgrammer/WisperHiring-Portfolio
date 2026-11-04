@@ -46,7 +46,7 @@ function ScrollProgress({
           trigger: track,
           start: "top top",
           end: "bottom bottom",
-          scrub: reduced ? true : 0.55,
+          scrub: reduced ? true : 0.85,
           invalidateOnRefresh: true,
           onRefresh: (self) => {
             driver.value = self.progress;
@@ -55,10 +55,6 @@ function ScrollProgress({
           },
         },
         onUpdate: () => {
-          const environment = document.querySelector<HTMLElement>(".dream-world-canvas");
-          if (environment) {
-            environment.style.backgroundPosition = `50% ${52 + driver.value * 10}%`;
-          }
           const value = reduced && chapters.length > 1
             ? Math.min(1, Math.round(driver.value * chapters.length) / chapters.length)
             : driver.value;

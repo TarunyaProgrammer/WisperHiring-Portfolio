@@ -1,69 +1,112 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   BufferGeometry,
   Color,
+  DoubleSide,
+  ExtrudeGeometry,
   Float32BufferAttribute,
   Group,
-  InstancedMesh,
-  Object3D,
-  PointsMaterial,
-  Quaternion,
+  Path,
+  ShaderMaterial,
+  Shape,
+  TubeGeometry,
+  CatmullRomCurve3,
   Vector3,
 } from "three";
-import { chapters } from "../data/portfolio";
 import { useExperience } from "./controller";
 import { journeyCurve, routePointAt, sampleJourneyRoute } from "./cameraRoute";
 
-const FORWARD = new Vector3(0, 0, 1);
 const PALETTE = ["#efd1aa", "#ae8cff", "#8ce8e0", "#ff9ec8", "#f7c977", "#a3c9ff"];
+const POINT_VERTEX_SHADER = `
+  attribute vec3 color;
+  uniform float uSize;
+  varying vec3 vColor;
+  varying float vDepth;
+  void main() {
+    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * viewPosition;
+    gl_PointSize = uSize / max(1.0, -viewPosition.z);
+    vColor = color;
+    vDepth = -viewPosition.z;
+  }
+`;
+const SOFT_POINT_FRAGMENT_SHADER = `
+  uniform float uOpacity;
+  varying vec3 vColor;
+  varying float vDepth;
+  void main() {
+    float radius = length(gl_PointCoord - vec2(0.5));
+    float edge = 1.0 - smoothstep(0.12, 0.5, radius);
+    float core = 1.0 - smoothstep(0.0, 0.2, radius);
+    vec3 glow = mix(vColor, vec3(1.0), core * 0.5);
+    float depthFade = 1.0 - smoothstep(70.0, 130.0, vDepth);
+    gl_FragColor = vec4(glow, edge * uOpacity * depthFade);
+  }
+`;
 
-function RouteArchitecture({ narrow }: { narrow: boolean }) {
-  const arches = useRef<InstancedMesh>(null);
-  const innerArches = useRef<InstancedMesh>(null);
-  const dummy = useMemo(() => new Object3D(), []);
-  const quaternion = useMemo(() => new Quaternion(), []);
-  const position = useMemo(() => new Vector3(), []);
-  const tangent = useMemo(() => new Vector3(), []);
-  const archSteps = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => 0.1 + i * 0.135),
-    [],
-  );
+function createGothicArch(width: number, height: number, depth: number) {
+  const shape = new Shape();
+  shape.moveTo(-width / 2, 0);
+  shape.lineTo(-width / 2, height * 0.64);
+  shape.bezierCurveTo(-width * 0.48, height * 0.86, -width * 0.2, height, 0, height);
+  shape.bezierCurveTo(width * 0.2, height, width * 0.48, height * 0.86, width / 2, height * 0.64);
+  shape.lineTo(width / 2, 0);
+  shape.closePath();
 
-  useLayoutEffect(() => {
-    const assign = (mesh: InstancedMesh | null, inset: number) => {
-      if (!mesh) return;
-      archSteps.forEach((progress, i) => {
-        sampleJourneyRoute(progress, position, tangent);
-        quaternion.setFromUnitVectors(FORWARD, tangent);
-        dummy.position.copy(position);
-        dummy.position.y += 0.25 + Math.sin(i * 0.91) * 0.12;
-        dummy.quaternion.copy(quaternion);
-        const scale = 3.35 + Math.sin(i * 1.37) * 0.3;
-        dummy.scale.set(scale - inset, scale * (1.12 + Math.sin(i) * 0.04) - inset, 1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-        mesh.setColorAt(i, new Color(PALETTE[i % PALETTE.length]));
-      });
-      mesh.instanceMatrix.needsUpdate = true;
-      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    };
-    assign(arches.current, 0);
-    assign(innerArches.current, 0.2);
-  }, [archSteps, dummy, position, tangent, quaternion]);
+  const opening = new Path();
+  opening.moveTo(-width * 0.285, 0);
+  opening.lineTo(width * 0.285, 0);
+  opening.lineTo(width * 0.285, height * 0.6);
+  opening.quadraticCurveTo(width * 0.25, height * 0.77, 0, height * 0.87);
+  opening.quadraticCurveTo(-width * 0.25, height * 0.77, -width * 0.285, height * 0.6);
+  opening.closePath();
+  shape.holes.push(opening);
 
+  const geometry = new ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: true,
+    bevelSegments: 3,
+    bevelSize: 0.16,
+    bevelThickness: 0.12,
+    curveSegments: 24,
+  });
+  geometry.translate(0, 0, -depth / 2);
+  return geometry;
+}
+
+function createArchTrim(width: number, height: number, z: number) {
+  const path = new Path();
+  path.moveTo(-width * 0.31, 0.1);
+  path.lineTo(-width * 0.31, height * 0.61);
+  path.quadraticCurveTo(-width * 0.27, height * 0.8, 0, height * 0.9);
+  path.quadraticCurveTo(width * 0.27, height * 0.8, width * 0.31, height * 0.61);
+  path.lineTo(width * 0.31, 0.1);
+  const points = path.getPoints(56).map((point) => new Vector3(point.x, point.y, z));
+  return new TubeGeometry(new CatmullRomCurve3(points, false, "centripetal"), 84, 0.055, 8, false);
+}
+
+function RouteGateway({ progress, lateral, scale, color }: { progress: number; lateral: number; scale: number; color: string }) {
+  const pose = useMemo(() => {
+    const tangent = journeyCurve.getTangentAt(progress).normalize();
+    const side = new Vector3(tangent.z, 0, -tangent.x).multiplyScalar(lateral);
+    return { point: routePointAt(progress).add(side), rotation: Math.atan2(tangent.x, tangent.z) };
+  }, [progress, lateral]);
+  const frame = useMemo(() => createGothicArch(4.9, 6.4, 0.62), []);
+  const trim = useMemo(() => createArchTrim(4.9, 6.4, 0.34), []);
   return (
-    <group>
-      <instancedMesh ref={arches} args={[undefined, undefined, archSteps.length]}>
-        <torusGeometry args={[1, 0.07, 10, 56]} />
-        <meshPhysicalMaterial color="#e1c5ff" emissive="#6847a1" emissiveIntensity={0.85} metalness={0.6} roughness={0.24} clearcoat={0.8} />
-      </instancedMesh>
-      {!narrow && (
-        <instancedMesh ref={innerArches} args={[undefined, undefined, archSteps.length]}>
-          <torusGeometry args={[1, 0.018, 6, 48]} />
-          <meshBasicMaterial color="#f4d4bd" />
-        </instancedMesh>
-      )}
+    <group position={pose.point} rotation={[0, pose.rotation, 0]} scale={scale}>
+      <mesh geometry={frame} position={[0, 0.12, 0]} castShadow receiveShadow>
+        <meshPhysicalMaterial color="#887687" roughness={0.68} metalness={0.14} side={DoubleSide} />
+      </mesh>
+      <mesh geometry={trim} position={[0, 0.12, 0]}>
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <mesh position={[0, 0.08, 0]}>
+        <boxGeometry args={[6.0, 0.22, 1.35]} />
+        <meshPhysicalMaterial color="#766477" roughness={0.84} />
+      </mesh>
+      <pointLight position={[0, 4.1, 1.2]} color={color} intensity={12} distance={22} decay={2} />
     </group>
   );
 }
@@ -96,84 +139,14 @@ function Constellation() {
   return (
     <group ref={dust}>
       <points geometry={field}>
-        <pointsMaterial size={0.14} vertexColors transparent opacity={0.72} depthWrite={false} sizeAttenuation />
+        <shaderMaterial
+          transparent
+          depthWrite={false}
+          uniforms={{ uOpacity: { value: 0.48 }, uSize: { value: 76 } }}
+          vertexShader={POINT_VERTEX_SHADER}
+          fragmentShader={SOFT_POINT_FRAGMENT_SHADER}
+        />
       </points>
-    </group>
-  );
-}
-
-function Marker({ progress, color, scale = 1 }: { progress: number; color: string; scale?: number }) {
-  const point = useMemo(() => routePointAt(progress), [progress]);
-  return (
-    <group position={[point.x, point.y + 0.3, point.z]}>
-      <mesh scale={[scale, scale * 1.15, 1]}>
-        <torusGeometry args={[2.5, 0.075, 12, 88]} />
-        <meshPhysicalMaterial color={color} emissive={color} emissiveIntensity={1.1} metalness={0.35} roughness={0.2} />
-      </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -1.4, 0]}>
-        <torusGeometry args={[1.25 * scale, 0.025, 8, 64]} />
-        <meshBasicMaterial color="#f5d3bf" transparent opacity={0.85} />
-      </mesh>
-      <pointLight color={color} intensity={18} distance={16} decay={2} />
-    </group>
-  );
-}
-
-const DISTRICT_COLORS = ["#f4c48f", "#bf9cff", "#89dce5", "#f49bbf", "#e8c976", "#a3c9ff"];
-
-function SkylineDistrict({ progress, variant }: { progress: number; variant: number }) {
-  const point = useMemo(() => routePointAt(progress), [progress]);
-  const tangent = useMemo(() => journeyCurve.getTangentAt(progress).normalize(), [progress]);
-  const rotation = Math.atan2(tangent.x, tangent.z);
-  const color = DISTRICT_COLORS[variant % DISTRICT_COLORS.length];
-  const towers = [
-    { x: 5.1, z: 0, scale: 1.48 },
-    { x: 8.5, z: 3.8, scale: 0.88 },
-    { x: 8.7, z: -4.2, scale: 0.72 },
-    { x: 3, z: 4.3, scale: 0.64 },
-  ];
-
-  return (
-    <group position={[point.x, point.y - 0.35, point.z]} rotation={[0, rotation, 0]}>
-      <mesh position={[5.8, 0, 0]}>
-        <cylinderGeometry args={[4.9, 5.45, 0.8, 8]} />
-        <meshPhysicalMaterial color="#201a2b" roughness={0.38} metalness={0.5} clearcoat={0.65} />
-      </mesh>
-      <mesh position={[5.8, 0.42, 0]}>
-        <cylinderGeometry args={[4.55, 4.85, 0.16, 8]} />
-        <meshStandardMaterial color="#4a354e" emissive="#261934" emissiveIntensity={0.8} metalness={0.35} />
-      </mesh>
-      <mesh position={[4.8, 0.12, 0]}>
-        <boxGeometry args={[5.7, 0.22, 1.55]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.3} metalness={0.5} roughness={0.25} />
-      </mesh>
-      {towers.map((tower, index) => (
-        <group key={index} position={[tower.x, 0.5, tower.z]} scale={tower.scale}>
-          <mesh position={[0, 0.45, 0]}>
-            <cylinderGeometry args={[1.45, 1.8, 0.9, 6]} />
-            <meshStandardMaterial color="#33273b" roughness={0.36} metalness={0.58} />
-          </mesh>
-          <mesh position={[0, 4.1, 0]}>
-            <cylinderGeometry args={[0.78, 1.38, 6.6, 6]} />
-            <meshPhysicalMaterial color="#877295" emissive="#362444" emissiveIntensity={0.7} metalness={0.65} roughness={0.27} clearcoat={0.8} />
-          </mesh>
-          <mesh position={[0, 7.9, 0]}>
-            <coneGeometry args={[1.35, 2.5, 6]} />
-            <meshPhysicalMaterial color={color} emissive={color} emissiveIntensity={0.75} metalness={0.5} roughness={0.22} />
-          </mesh>
-          <mesh position={[0, 4.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1.06, 0.045, 8, 32]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
-          {[0, 1, 2, 3].map((window) => (
-            <mesh key={window} position={[Math.cos(window * Math.PI / 2) * 0.89, 3.8, Math.sin(window * Math.PI / 2) * 0.89]}>
-              <boxGeometry args={[0.12, 1.6, 0.12]} />
-              <meshBasicMaterial color="#ffe5b8" />
-            </mesh>
-          ))}
-        </group>
-      ))}
-      <pointLight position={[5.8, 8, 0]} color={color} intensity={72} distance={38} decay={2} />
     </group>
   );
 }
@@ -188,10 +161,10 @@ function CameraRig() {
   useFrame(() => {
     const t = progress.current;
     sampleJourneyRoute(t, point, tangent);
-    look.copy(point).addScaledVector(tangent, 5.4);
-    look.y += 0.35;
-    camera.position.copy(point).addScaledVector(tangent, -6.2);
-    camera.position.y += 3.1;
+    look.copy(point).addScaledVector(tangent, 6.4);
+    look.y += 0.55;
+    camera.position.copy(point).addScaledVector(tangent, -8.2);
+    camera.position.y += 3.7;
     camera.lookAt(look);
     camera.updateMatrixWorld();
   });
@@ -199,27 +172,30 @@ function CameraRig() {
 }
 
 export function World() {
-  const { progress } = useExperience();
-  const narrow = useThree((state) => state.size.width < 760);
+  const { progress, reduced } = useExperience();
   const endPosition = useMemo(() => routePointAt(0.99), []);
-  const confettiMaterial = useRef<PointsMaterial>(null);
+  const confettiMaterial = useRef<ShaderMaterial>(null);
   const confettiGroup = useRef<Group>(null);
   const confetti = useMemo(() => {
     const geometry = new BufferGeometry();
     const positions: number[] = [];
-    for (let i = 0; i < 240; i++) {
+    const colors: number[] = [];
+    for (let i = 0; i < 150; i++) {
       const angle = i * 2.399963;
       const radius = 1 + (i % 19) * 0.1;
       positions.push(Math.cos(angle) * radius, Math.sin(i * 0.75) * radius, Math.sin(angle) * radius);
+      const color = new Color(PALETTE[i % PALETTE.length]);
+      colors.push(color.r, color.g, color.b);
     }
     geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
     return geometry;
   }, []);
 
   useFrame((_, delta) => {
-    const celebration = Math.max(0, Math.min(1, (progress.current - 0.9) * 10));
+    const celebration = reduced ? 0 : Math.max(0, Math.min(1, (progress.current - 0.9) * 10));
     if (confettiMaterial.current) {
-      confettiMaterial.current.opacity = celebration * 0.9;
+      confettiMaterial.current.uniforms.uOpacity.value = celebration * 0.72;
     }
     if (confettiGroup.current) {
       confettiGroup.current.scale.setScalar(0.65 + celebration * 2.6);
@@ -229,23 +205,19 @@ export function World() {
 
   return (
     <group>
-      <RouteArchitecture narrow={narrow} />
       <Constellation />
       <CameraRig />
-      {!narrow && [0.035, ...chapters.slice(1, -1).map((chapter) => chapter.progress)].map((progress, i) => (
-        <SkylineDistrict key={`${progress}-${i}`} progress={progress} variant={i} />
-      ))}
-      {chapters.slice(1, -1).map((chapter, i) => (
-        <Marker
-          key={chapter.id}
-          progress={chapter.progress}
-          color={PALETTE[(i + 1) % PALETTE.length]}
-          scale={i === 4 ? 1.42 : 1}
-        />
-      ))}
+      <RouteGateway progress={0.08} lateral={0} scale={0.46} color="#f5ce9d" />
       <group ref={confettiGroup} position={[endPosition.x, endPosition.y + 3, endPosition.z]}>
         <points geometry={confetti}>
-          <pointsMaterial ref={confettiMaterial} size={0.2} color="#f6c987" transparent opacity={0} depthWrite={false} />
+          <shaderMaterial
+            ref={confettiMaterial}
+            transparent
+            depthWrite={false}
+            uniforms={{ uOpacity: { value: 0 }, uSize: { value: 42 } }}
+            vertexShader={POINT_VERTEX_SHADER}
+            fragmentShader={SOFT_POINT_FRAGMENT_SHADER}
+          />
         </points>
       </group>
     </group>

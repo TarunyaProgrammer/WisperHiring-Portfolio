@@ -20,7 +20,7 @@
   height: 100svh;
   pointer-events: none;
   touch-action: pan-y;
-  background: #100b17 url("/images/dream-environment.jpg") center 52% / cover no-repeat;
+  background: #100b17 url("/images/dream-environment.jpg") center / cover no-repeat;
 }
 .dream-world-canvas canvas {
   display: block;
