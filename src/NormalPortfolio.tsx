@@ -57,7 +57,6 @@ export function NormalPortfolio({ onDream, soundEnabled, onToggleSound }: Props)
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
     document.documentElement.style.setProperty("--wake-x", `${event.clientX}px`);
     document.documentElement.style.setProperty("--wake-y", `${event.clientY}px`);
-    document.documentElement.style.setProperty("--wake-cursor-rotation", `${x * 9}deg`);
     if (sculpture.current) {
       sculpture.current.style.transform = `translate3d(${x * 38}px, ${y * 30}px, 0) rotateX(${-y * 12}deg) rotateY(${x * 16}deg) rotateZ(${x * 4}deg)`;
     }
@@ -67,11 +66,9 @@ export function NormalPortfolio({ onDream, soundEnabled, onToggleSound }: Props)
     <div ref={root} className="wake-page" onPointerMove={followPointer}>
       <a className="wake-skip" href="#wake-work">Skip to selected work</a>
       <div className="wake-pointer-light" aria-hidden="true">
-        <svg className="wake-cursor-form" viewBox="0 0 560 420" role="presentation">
-          <path className="wake-cursor-outline" d="M44 227 C70 176 82 113 132 78 L224 51 L303 72 L414 35 L501 102 L479 190 L527 261 L459 344 L366 355 L271 403 L190 356 L94 342 L35 282 Z" />
-          <path className="wake-cursor-facet" d="M132 78 C157 140 190 195 271 222 L303 72 M224 51 C245 137 309 185 393 220 L479 190 M414 35 C383 117 379 181 393 220 L459 344 M44 227 C123 220 199 225 271 222 L366 355 M35 282 C119 280 194 262 271 222 L527 261 M94 342 C155 308 211 267 271 222" />
-          <path className="wake-cursor-warm-edge" d="M414 35 C468 76 494 131 479 190 M459 344 C425 297 403 258 393 220" />
-        </svg>
+        <div className="wake-pointer-invert" />
+        <div className="wake-pointer-ring" />
+        <div className="wake-pointer-core" />
       </div>
       <header className="wake-header">
         <a className="wake-wordmark" href="#wake-top" aria-label="Tarunya Kesharwani, home">

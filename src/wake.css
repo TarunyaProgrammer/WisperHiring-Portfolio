@@ -33,46 +33,61 @@
 
 .wake-pointer-light {
   position: fixed;
-  z-index: 0;
+  z-index: 9999;
   inset: 0;
   pointer-events: none;
 }
 
-.wake-cursor-form {
+.wake-pointer-invert {
   position: absolute;
   top: 0;
   left: 0;
-  width: min(42vw, 570px);
-  min-width: 390px;
-  overflow: visible;
-  transform: translate3d(var(--wake-x, 50vw), var(--wake-y, 50vh), 0) translate(-50%, -50%) rotate(var(--wake-cursor-rotation, 0deg));
-  opacity: 0.76;
-  mix-blend-mode: multiply;
-  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  height: 100%;
+  -webkit-backdrop-filter: invert(1) hue-rotate(180deg) saturate(1.18);
+  backdrop-filter: invert(1) hue-rotate(180deg) saturate(1.18);
+  -webkit-mask-image: radial-gradient(circle 142px at var(--wake-x, 50vw) var(--wake-y, 50vh), #000 0 78%, #0009 91%, transparent 100%);
+  mask-image: radial-gradient(circle 142px at var(--wake-x, 50vw) var(--wake-y, 50vh), #000 0 78%, #0009 91%, transparent 100%);
+  transition: -webkit-mask-position 160ms ease-out, mask-position 160ms ease-out;
 }
 
-.wake-cursor-outline {
-  fill: #8670ad18;
-  stroke: #684c8f;
-  stroke-opacity: 0.48;
-  stroke-width: 1.1;
-  vector-effect: non-scaling-stroke;
+.wake-pointer-ring,
+.wake-pointer-core {
+  position: absolute;
+  left: var(--wake-x, 50vw);
+  top: var(--wake-y, 50vh);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  transition: left 120ms ease-out, top 120ms ease-out;
 }
 
-.wake-cursor-facet {
-  fill: none;
-  stroke: #705894;
-  stroke-opacity: 0.42;
-  stroke-width: 0.9;
-  vector-effect: non-scaling-stroke;
+.wake-pointer-ring {
+  width: 300px;
+  border-radius: 50%;
+  background: conic-gradient(from var(--wake-ring-angle, 0deg), transparent 0 9%, #41354c 14%, #bda9c5 22%, #7662a2 32%, transparent 41% 54%, #bda9c5 64%, #dfc7b4 71%, transparent 80% 100%);
+  filter: drop-shadow(0 0 8px #7662a24d);
+  animation: wake-ring-turn 9s linear infinite;
+  -webkit-mask: radial-gradient(circle, transparent 0 147px, #000 149px 151px, transparent 153px);
+  mask: radial-gradient(circle, transparent 0 147px, #000 149px 151px, transparent 153px);
 }
 
-.wake-cursor-warm-edge {
-  fill: none;
-  stroke: #a67668;
-  stroke-opacity: 0.34;
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+.wake-pointer-core {
+  width: 34px;
+  border: 1px solid #c6b2d0a6;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #030204;
+  box-shadow: 0 0 14px 3px #7662a24d;
+}
+
+@property --wake-ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes wake-ring-turn {
+  to { --wake-ring-angle: 360deg; }
 }
 
 .wake-header {
@@ -963,10 +978,7 @@
   .wake-sound span {
     display: none;
   }
-  .wake-cursor-form {
-    width: 460px;
-    min-width: 0;
-  }
+  .wake-pointer-light { display: none; }
   .wake-hero {
     min-height: 100svh;
     padding: 140px 25px 140px;
